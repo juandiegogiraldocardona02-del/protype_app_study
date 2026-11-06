@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -51,6 +51,108 @@ Future<SubjectDto> updateSubject({
 
 Future<void> deleteSubject({required PlatformInt64 id}) =>
     RustLib.instance.api.crateBridgeDeleteSubject(id: id);
+
+Future<ImportOutcomeDto> importDocument({
+  required PlatformInt64 subjectId,
+  required String path,
+}) => RustLib.instance.api.crateBridgeImportDocument(
+  subjectId: subjectId,
+  path: path,
+);
+
+Future<List<DocumentDto>> listDocuments({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeListDocuments(subjectId: subjectId);
+
+Future<void> deleteDocument({required PlatformInt64 id}) =>
+    RustLib.instance.api.crateBridgeDeleteDocument(id: id);
+
+Future<bool> ocrAvailable() => RustLib.instance.api.crateBridgeOcrAvailable();
+
+class DocumentDto {
+  final PlatformInt64 id;
+  final PlatformInt64 subjectId;
+  final String name;
+  final String localPath;
+  final String kind;
+  final String hash;
+  final PlatformInt64 version;
+  final String extractionStatus;
+  final String? extractionMessage;
+  final PlatformInt64 textChars;
+
+  const DocumentDto({
+    required this.id,
+    required this.subjectId,
+    required this.name,
+    required this.localPath,
+    required this.kind,
+    required this.hash,
+    required this.version,
+    required this.extractionStatus,
+    this.extractionMessage,
+    required this.textChars,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      subjectId.hashCode ^
+      name.hashCode ^
+      localPath.hashCode ^
+      kind.hashCode ^
+      hash.hashCode ^
+      version.hashCode ^
+      extractionStatus.hashCode ^
+      extractionMessage.hashCode ^
+      textChars.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DocumentDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          subjectId == other.subjectId &&
+          name == other.name &&
+          localPath == other.localPath &&
+          kind == other.kind &&
+          hash == other.hash &&
+          version == other.version &&
+          extractionStatus == other.extractionStatus &&
+          extractionMessage == other.extractionMessage &&
+          textChars == other.textChars;
+}
+
+class ImportOutcomeDto {
+  final DocumentDto document;
+  final bool duplicate;
+  final bool ocrUsed;
+  final String message;
+
+  const ImportOutcomeDto({
+    required this.document,
+    required this.duplicate,
+    required this.ocrUsed,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      document.hashCode ^
+      duplicate.hashCode ^
+      ocrUsed.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImportOutcomeDto &&
+          runtimeType == other.runtimeType &&
+          document == other.document &&
+          duplicate == other.duplicate &&
+          ocrUsed == other.ocrUsed &&
+          message == other.message;
+}
 
 class ProfileDto {
   final PlatformInt64 id;

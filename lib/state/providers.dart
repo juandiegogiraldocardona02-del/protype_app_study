@@ -46,6 +46,13 @@ final subjectsProvider = FutureProvider.family<List<SubjectDto>, int>((
   return ref.watch(repositoryProvider).listSubjects(profileId);
 });
 
+final documentsProvider = FutureProvider.family<List<DocumentDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listDocuments(subjectId);
+});
+
 class NavigationIndex extends Notifier<int> {
   @override
   int build() => 0;
@@ -114,4 +121,29 @@ class SubjectActions {
 
 final subjectActionsProvider = Provider<SubjectActions>(
   (ref) => SubjectActions(ref),
+);
+
+class DocumentActions {
+  DocumentActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<ImportOutcomeDto> import(int subjectId, String path) async {
+    final outcome = await _repo.importDocument(subjectId, path);
+    _ref.invalidate(documentsProvider(subjectId));
+    return outcome;
+  }
+
+  Future<void> delete(int subjectId, int id) async {
+    await _repo.deleteDocument(id);
+    _ref.invalidate(documentsProvider(subjectId));
+  }
+
+  Future<bool> ocrAvailable() => _repo.ocrAvailable();
+}
+
+final documentActionsProvider = Provider<DocumentActions>(
+  (ref) => DocumentActions(ref),
 );

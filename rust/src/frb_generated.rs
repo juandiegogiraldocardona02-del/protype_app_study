@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 199125075;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -774302722;
 
 // Section: executor
 
@@ -120,6 +120,41 @@ fn wire__crate__bridge__create_subject_impl(
         },
     )
 }
+fn wire__crate__bridge__delete_document_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "delete_document",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::delete_document(api_id)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__bridge__delete_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -183,6 +218,42 @@ fn wire__crate__bridge__delete_subject_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::bridge::delete_subject(api_id)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__import_document_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "import_document",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_subject_id = <i64>::sse_decode(&mut deserializer);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::import_document(api_subject_id, api_path)?;
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
@@ -256,6 +327,41 @@ fn wire__crate__bridge__initialize_database_impl(
         },
     )
 }
+fn wire__crate__bridge__list_documents_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "list_documents",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_subject_id = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::list_documents(api_subject_id)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__bridge__list_profiles_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -321,6 +427,38 @@ fn wire__crate__bridge__list_subjects_impl(
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__ocr_available_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "ocr_available",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(crate::bridge::ocr_available())?;
+                    std::result::Result::Ok(output_ok)
+                })())
             }
         },
     )
@@ -417,10 +555,73 @@ impl SseDecode for String {
     }
 }
 
+impl SseDecode for bool {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u8().unwrap() != 0
+    }
+}
+
+impl SseDecode for crate::bridge::DocumentDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <i64>::sse_decode(deserializer);
+        let mut var_subjectId = <i64>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_localPath = <String>::sse_decode(deserializer);
+        let mut var_kind = <String>::sse_decode(deserializer);
+        let mut var_hash = <String>::sse_decode(deserializer);
+        let mut var_version = <i64>::sse_decode(deserializer);
+        let mut var_extractionStatus = <String>::sse_decode(deserializer);
+        let mut var_extractionMessage = <Option<String>>::sse_decode(deserializer);
+        let mut var_textChars = <i64>::sse_decode(deserializer);
+        return crate::bridge::DocumentDto {
+            id: var_id,
+            subject_id: var_subjectId,
+            name: var_name,
+            local_path: var_localPath,
+            kind: var_kind,
+            hash: var_hash,
+            version: var_version,
+            extraction_status: var_extractionStatus,
+            extraction_message: var_extractionMessage,
+            text_chars: var_textChars,
+        };
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for crate::bridge::ImportOutcomeDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_document = <crate::bridge::DocumentDto>::sse_decode(deserializer);
+        let mut var_duplicate = <bool>::sse_decode(deserializer);
+        let mut var_ocrUsed = <bool>::sse_decode(deserializer);
+        let mut var_message = <String>::sse_decode(deserializer);
+        return crate::bridge::ImportOutcomeDto {
+            document: var_document,
+            duplicate: var_duplicate,
+            ocr_used: var_ocrUsed,
+            message: var_message,
+        };
+    }
+}
+
+impl SseDecode for Vec<crate::bridge::DocumentDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::bridge::DocumentDto>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -457,6 +658,17 @@ impl SseDecode for Vec<crate::bridge::SubjectDto> {
             ans_.push(<crate::bridge::SubjectDto>::sse_decode(deserializer));
         }
         return ans_;
+    }
+}
+
+impl SseDecode for Option<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<String>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
     }
 }
 
@@ -511,13 +723,6 @@ impl SseDecode for i32 {
     }
 }
 
-impl SseDecode for bool {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u8().unwrap() != 0
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -529,13 +734,17 @@ fn pde_ffi_dispatcher_primary_impl(
     match func_id {
         1 => wire__crate__bridge__create_profile_impl(port, ptr, rust_vec_len, data_len),
         2 => wire__crate__bridge__create_subject_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__bridge__delete_profile_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__bridge__delete_subject_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__bridge__init_app_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__bridge__delete_document_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__bridge__delete_profile_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__bridge__delete_subject_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__bridge__import_document_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__bridge__init_app_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__bridge__list_documents_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__bridge__ocr_available_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -548,13 +757,60 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        6 => wire__crate__bridge__initialize_database_impl(ptr, rust_vec_len, data_len),
+        8 => wire__crate__bridge__initialize_database_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
 
 // Section: rust2dart
 
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::bridge::DocumentDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.subject_id.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.local_path.into_into_dart().into_dart(),
+            self.kind.into_into_dart().into_dart(),
+            self.hash.into_into_dart().into_dart(),
+            self.version.into_into_dart().into_dart(),
+            self.extraction_status.into_into_dart().into_dart(),
+            self.extraction_message.into_into_dart().into_dart(),
+            self.text_chars.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::bridge::DocumentDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::bridge::DocumentDto> for crate::bridge::DocumentDto {
+    fn into_into_dart(self) -> crate::bridge::DocumentDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::bridge::ImportOutcomeDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.document.into_into_dart().into_dart(),
+            self.duplicate.into_into_dart().into_dart(),
+            self.ocr_used.into_into_dart().into_dart(),
+            self.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::bridge::ImportOutcomeDto
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::bridge::ImportOutcomeDto>
+    for crate::bridge::ImportOutcomeDto
+{
+    fn into_into_dart(self) -> crate::bridge::ImportOutcomeDto {
+        self
+    }
+}
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::bridge::ProfileDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -606,10 +862,53 @@ impl SseEncode for String {
     }
 }
 
+impl SseEncode for bool {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u8(self as _).unwrap();
+    }
+}
+
+impl SseEncode for crate::bridge::DocumentDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i64>::sse_encode(self.id, serializer);
+        <i64>::sse_encode(self.subject_id, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.local_path, serializer);
+        <String>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.hash, serializer);
+        <i64>::sse_encode(self.version, serializer);
+        <String>::sse_encode(self.extraction_status, serializer);
+        <Option<String>>::sse_encode(self.extraction_message, serializer);
+        <i64>::sse_encode(self.text_chars, serializer);
+    }
+}
+
 impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::bridge::ImportOutcomeDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::bridge::DocumentDto>::sse_encode(self.document, serializer);
+        <bool>::sse_encode(self.duplicate, serializer);
+        <bool>::sse_encode(self.ocr_used, serializer);
+        <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for Vec<crate::bridge::DocumentDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::bridge::DocumentDto>::sse_encode(item, serializer);
+        }
     }
 }
 
@@ -639,6 +938,16 @@ impl SseEncode for Vec<crate::bridge::SubjectDto> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::bridge::SubjectDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <String>::sse_encode(value, serializer);
         }
     }
 }
@@ -679,13 +988,6 @@ impl SseEncode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
-    }
-}
-
-impl SseEncode for bool {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u8(self as _).unwrap();
     }
 }
 

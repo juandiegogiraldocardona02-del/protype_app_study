@@ -30,4 +30,18 @@ class RustStudyRepository implements StudyRepository {
 
   @override
   Future<void> deleteSubject(int id) => rust.deleteSubject(id: id);
+
+  @override
+  Future<List<DocumentDto>> listDocuments(int subjectId) =>
+      rust.listDocuments(subjectId: subjectId);
+
+  @override
+  Future<ImportOutcomeDto> importDocument(int subjectId, String path) =>
+      rust.importDocument(subjectId: subjectId, path: path);
+
+  @override
+  Future<void> deleteDocument(int id) => rust.deleteDocument(id: id);
+
+  @override
+  Future<bool> ocrAvailable() => rust.ocrAvailable();
 }

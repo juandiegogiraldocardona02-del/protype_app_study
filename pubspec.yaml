@@ -39,6 +39,7 @@ dependencies:
   flutter_rust_bridge: 2.13.0
   flutter_riverpod: ^3.4.3
   path_provider: ^2.1.6
+  file_picker: ^13.3.2
 
 dev_dependencies:
   flutter_test:

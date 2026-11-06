@@ -108,4 +108,67 @@ void main() {
     expect(find.text('Debe existir al menos un perfil.'), findsOneWidget);
     expect(find.text('Ana'), findsWidgets);
   });
+
+  testWidgets('la biblioteca lista y filtra documentos de la asignatura', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addDocument(
+      1,
+      name: 'Tema 1.pdf',
+      kind: 'pdf',
+      textChars: 3200,
+    );
+    repository.addDocument(1, name: 'Apuntes.txt', kind: 'txt');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Biblioteca').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tema 1.pdf'), findsOneWidget);
+    expect(find.text('Apuntes.txt'), findsOneWidget);
+
+    await tester.tap(find.text('PDF'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tema 1.pdf'), findsOneWidget);
+    expect(find.text('Apuntes.txt'), findsNothing);
+  });
+
+  testWidgets('la biblioteca avisa de imágenes sin OCR', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addDocument(
+      1,
+      name: 'Escaneo.png',
+      kind: 'imagen',
+      textChars: 0,
+      extractionStatus: 'ocr_no_disponible',
+    );
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Biblioteca').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escaneo.png'), findsOneWidget);
+    expect(find.textContaining('sin OCR'), findsOneWidget);
+  });
+
+  testWidgets('elimina un documento tras confirmar', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addDocument(1, name: 'Borrar.txt', kind: 'txt');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Biblioteca').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Eliminar documento'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Borrar.txt'), findsNothing);
+    expect(await repository.listDocuments(1), isEmpty);
+  });
 }

@@ -5,12 +5,30 @@ use chrono::{SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
-use crate::domain::{Profile, Subject};
+use crate::domain::{Document, Profile, Subject};
 use crate::error::{CoreError, CoreResult};
 
-const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!("../../migrations/0001_init.sql"))];
+const MIGRATIONS: &[(i64, &str)] = &[
+    (1, include_str!("../../migrations/0001_init.sql")),
+    (
+        2,
+        include_str!("../../migrations/0002_documents_nombre.sql"),
+    ),
+];
 
 const MAX_NAME_LEN: usize = 120;
+
+pub struct NewDocument {
+    pub subject_id: i64,
+    pub name: String,
+    pub local_path: String,
+    pub kind: String,
+    pub hash: String,
+    pub version: i64,
+    pub extraction_status: String,
+    pub extraction_message: Option<String>,
+    pub chunks: Vec<String>,
+}
 
 pub struct Database {
     conn: Connection,
@@ -226,11 +244,122 @@ impl Database {
         Ok(())
     }
 
+    pub fn find_document_by_hash(
+        &self,
+        subject_id: i64,
+        hash: &str,
+    ) -> CoreResult<Option<Document>> {
+        self.conn
+            .query_row(
+                &format!("{DOCUMENT_SELECT} WHERE d.subject_id = ?1 AND d.hash = ?2"),
+                params![subject_id, hash],
+                map_document,
+            )
+            .optional()
+            .map_err(CoreError::from)
+    }
+
+    pub fn next_document_version(&self, subject_id: i64, name: &str) -> CoreResult<i64> {
+        Ok(self.conn.query_row(
+            "SELECT COALESCE(MAX(version), 0) + 1 FROM documents
+             WHERE subject_id = ?1 AND nombre = ?2",
+            params![subject_id, name],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn insert_document(&mut self, new_document: NewDocument) -> CoreResult<Document> {
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO documents
+                (subject_id, nombre, ruta_local, tipo, hash, version,
+                 extraccion_estado, extraccion_mensaje)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                new_document.subject_id,
+                new_document.name,
+                new_document.local_path,
+                new_document.kind,
+                new_document.hash,
+                new_document.version,
+                new_document.extraction_status,
+                new_document.extraction_message,
+            ],
+        )?;
+        let id = tx.last_insert_rowid();
+        for chunk in &new_document.chunks {
+            tx.execute(
+                "INSERT INTO document_chunks (document_id, texto) VALUES (?1, ?2)",
+                params![id, chunk],
+            )?;
+        }
+        log_change(&tx, "document", id, "crear")?;
+        tx.commit()?;
+        self.get_document(id)
+    }
+
+    pub fn get_document(&self, id: i64) -> CoreResult<Document> {
+        self.conn
+            .query_row(
+                &format!("{DOCUMENT_SELECT} WHERE d.id = ?1"),
+                params![id],
+                map_document,
+            )
+            .optional()?
+            .ok_or_else(|| CoreError::NotFound(format!("documento {id}")))
+    }
+
+    pub fn list_documents(&self, subject_id: i64) -> CoreResult<Vec<Document>> {
+        let mut stmt = self.conn.prepare(&format!(
+            "{DOCUMENT_SELECT} WHERE d.subject_id = ?1
+             ORDER BY d.created_at DESC, d.id DESC"
+        ))?;
+        let rows = stmt.query_map(params![subject_id], map_document)?;
+        let mut documents = Vec::new();
+        for row in rows {
+            documents.push(row?);
+        }
+        Ok(documents)
+    }
+
+    pub fn delete_document(&mut self, id: i64) -> CoreResult<()> {
+        let tx = self.conn.transaction()?;
+        let deleted = tx.execute("DELETE FROM documents WHERE id = ?1", params![id])?;
+        if deleted == 0 {
+            return Err(CoreError::NotFound(format!("documento {id}")));
+        }
+        log_change(&tx, "document", id, "eliminar")?;
+        tx.commit()?;
+        Ok(())
+    }
+
     pub fn change_count(&self) -> CoreResult<i64> {
         Ok(self
             .conn
             .query_row("SELECT COUNT(*) FROM change_history", [], |row| row.get(0))?)
     }
+}
+
+const DOCUMENT_SELECT: &str = "SELECT d.id, d.subject_id, d.nombre, d.ruta_local, d.tipo,
+       d.hash, d.version, d.extraccion_estado, d.extraccion_mensaje,
+       COALESCE(
+           (SELECT SUM(length(c.texto)) FROM document_chunks c
+            WHERE c.document_id = d.id), 0)
+FROM documents d";
+
+fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
+    Ok(Document {
+        id: row.get(0)?,
+        subject_id: row.get(1)?,
+        name: row.get(2)?,
+        local_path: row.get(3)?,
+        kind: row.get(4)?,
+        hash: row.get(5)?,
+        version: row.get(6)?,
+        extraction_status: row.get(7)?,
+        extraction_message: row.get(8)?,
+        text_chars: row.get(9)?,
+    })
 }
 
 fn validate_name(name: &str) -> CoreResult<&str> {

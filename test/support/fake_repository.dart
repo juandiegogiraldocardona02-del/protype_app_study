@@ -5,8 +5,11 @@ class FakeStudyRepository implements StudyRepository {
 
   final Map<int, ProfileDto> _profiles = <int, ProfileDto>{};
   final Map<int, List<SubjectDto>> _subjects = <int, List<SubjectDto>>{};
+  final Map<int, List<DocumentDto>> _documents = <int, List<DocumentDto>>{};
   int _nextProfileId = 1;
   int _nextSubjectId = 1;
+  int _nextDocumentId = 1;
+  bool ocrAvailableResult = false;
 
   ProfileDto addProfile(String name) {
     final profile = ProfileDto(
@@ -59,7 +62,9 @@ class FakeStudyRepository implements StudyRepository {
   @override
   Future<void> deleteProfile(int id) async {
     _profiles.remove(id);
-    _subjects.remove(id);
+    for (final subject in _subjects.remove(id) ?? const <SubjectDto>[]) {
+      _documents.remove(subject.id);
+    }
   }
 
   @override
@@ -104,5 +109,69 @@ class FakeStudyRepository implements StudyRepository {
     for (final subjects in _subjects.values) {
       subjects.removeWhere((subject) => subject.id == id);
     }
+    _documents.remove(id);
   }
+
+  DocumentDto addDocument(
+    int subjectId, {
+    String name = 'apuntes.txt',
+    String kind = 'txt',
+    int version = 1,
+    int textChars = 120,
+    String extractionStatus = 'ok',
+  }) {
+    final document = DocumentDto(
+      id: _nextDocumentId++,
+      subjectId: subjectId,
+      name: name,
+      localPath: '/tmp/$name',
+      kind: kind,
+      hash: 'hash-$name-$version',
+      version: version,
+      extractionStatus: extractionStatus,
+      textChars: textChars,
+    );
+    _documents.putIfAbsent(subjectId, () => <DocumentDto>[]).add(document);
+    return document;
+  }
+
+  @override
+  Future<List<DocumentDto>> listDocuments(int subjectId) async {
+    return List<DocumentDto>.of(
+      _documents[subjectId] ?? const <DocumentDto>[],
+    );
+  }
+
+  @override
+  Future<ImportOutcomeDto> importDocument(int subjectId, String path) async {
+    final name = path.split(RegExp(r'[\\/]')).last;
+    final existing = (_documents[subjectId] ?? const <DocumentDto>[]).where(
+      (document) => document.name == name && document.kind != 'pdf',
+    );
+    if (existing.isNotEmpty) {
+      return ImportOutcomeDto(
+        document: existing.first,
+        duplicate: true,
+        ocrUsed: false,
+        message: 'El documento ya estaba importado.',
+      );
+    }
+    final document = addDocument(subjectId, name: name);
+    return ImportOutcomeDto(
+      document: document,
+      duplicate: false,
+      ocrUsed: false,
+      message: 'Importado.',
+    );
+  }
+
+  @override
+  Future<void> deleteDocument(int id) async {
+    for (final documents in _documents.values) {
+      documents.removeWhere((document) => document.id == id);
+    }
+  }
+
+  @override
+  Future<bool> ocrAvailable() async => ocrAvailableResult;
 }

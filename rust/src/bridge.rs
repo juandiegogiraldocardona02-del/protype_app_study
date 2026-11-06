@@ -22,6 +22,28 @@ pub struct SubjectDto {
     pub xp_config_json: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct DocumentDto {
+    pub id: i64,
+    pub subject_id: i64,
+    pub name: String,
+    pub local_path: String,
+    pub kind: String,
+    pub hash: String,
+    pub version: i64,
+    pub extraction_status: String,
+    pub extraction_message: Option<String>,
+    pub text_chars: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImportOutcomeDto {
+    pub document: DocumentDto,
+    pub duplicate: bool,
+    pub ocr_used: bool,
+    pub message: String,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -40,6 +62,34 @@ impl From<domain::Subject> for SubjectDto {
             name: value.name,
             color: value.color,
             xp_config_json: value.xp_config_json,
+        }
+    }
+}
+
+impl From<domain::Document> for DocumentDto {
+    fn from(value: domain::Document) -> Self {
+        Self {
+            id: value.id,
+            subject_id: value.subject_id,
+            name: value.name,
+            local_path: value.local_path,
+            kind: value.kind,
+            hash: value.hash,
+            version: value.version,
+            extraction_status: value.extraction_status,
+            extraction_message: value.extraction_message,
+            text_chars: value.text_chars,
+        }
+    }
+}
+
+impl From<domain::ImportOutcome> for ImportOutcomeDto {
+    fn from(value: domain::ImportOutcome) -> Self {
+        Self {
+            document: value.document.into(),
+            duplicate: value.duplicate,
+            ocr_used: value.ocr_used,
+            message: value.message,
         }
     }
 }
@@ -88,4 +138,24 @@ pub fn update_subject(id: i64, name: String, color: String) -> anyhow::Result<Su
 pub fn delete_subject(id: i64) -> anyhow::Result<()> {
     db::with_db(|database| database.delete_subject(id))?;
     Ok(())
+}
+
+pub fn import_document(subject_id: i64, path: String) -> anyhow::Result<ImportOutcomeDto> {
+    let outcome =
+        db::with_db(|database| crate::documents::import_document(database, subject_id, &path))?;
+    Ok(outcome.into())
+}
+
+pub fn list_documents(subject_id: i64) -> anyhow::Result<Vec<DocumentDto>> {
+    let documents = db::with_db(|database| crate::documents::list_documents(database, subject_id))?;
+    Ok(documents.into_iter().map(DocumentDto::from).collect())
+}
+
+pub fn delete_document(id: i64) -> anyhow::Result<()> {
+    db::with_db(|database| crate::documents::delete_document(database, id))?;
+    Ok(())
+}
+
+pub fn ocr_available() -> bool {
+    crate::documents::ocr_available()
 }
