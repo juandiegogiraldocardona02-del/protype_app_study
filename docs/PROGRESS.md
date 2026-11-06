@@ -2,7 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1 y E2 completadas, E3 como siguiente paso.
+> Última actualización: Etapas E1, E2 y E3 completadas, E4 como siguiente paso.
 
 ## Repositorio
 
@@ -75,6 +75,29 @@ Cubre FR-003 (PDF/TXT/imágenes), FR-017 y RES-005.
 - [x] `flutter build windows --debug` y arranque real verificados (migración
       `0002` aplicada sin errores).
 
+## Etapa E3 — COMPLETADA ✅
+
+Cubre FR-006 (generación de plan), FR-007 (replanificación) y FR-008 (vistas de
+calendario).
+
+- [x] Migración `0003_planning.sql`: `plan_settings`, `availability` y columna
+      `sessions.inicio_original` para poder revertir la replanificación.
+- [x] Rust `planning`: generación que respeta minutos por día y fecha límite,
+      reparto por dificultad (1–3 sesiones por tema), vista previa sin guardar
+      y guardado transaccional que conserva las sesiones completadas.
+- [x] Replanificación de pendientes desde “ahora”, descontando el tiempo ya
+      ocupado por sesiones completadas; reversible con `inicio_original`.
+- [x] CRUD de temas (nombre + dificultad 1–5) y configuración de
+      disponibilidad (duración, días, minutos/día, hora de inicio, fecha
+      límite) desde la agenda de la asignatura.
+- [x] Flutter: pestaña Agenda con temas, configuración, vista previa editable
+      (se pueden descartar sesiones) y botón de replanificar con “Deshacer”.
+- [x] Calendario global con vistas mensual, semanal y diaria, filtro por
+      asignatura, indicadores de estado y marcado de sesiones completadas.
+- [x] Pruebas Rust: 25 verdes (+2 de integración opcionales).
+- [x] Pruebas Flutter: 11 verdes.
+- [x] Build Windows y arranque real verificados (migración `0003` aplicada).
+
 ## Decisiones de implementación tomadas
 
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
@@ -91,6 +114,26 @@ Cubre FR-003 (PDF/TXT/imágenes), FR-017 y RES-005.
   `ocr_reads_text_when_configured`. No es necesario instalarlo en el sistema:
   la app lo detecta por PATH o por `TESSERACT_PATH`. El idioma OCR se puede
   fijar con `TESSERACT_LANG` (por defecto, el de Tesseract).
+- **Planificador:** una sesión por tema como mínimo; dificultad 2 añade una
+  sesión y dificultad ≥3 añade dos (máximo 3 por tema). Se reparte de lunes a
+  domingo según la disponibilidad configurada y la hora de inicio; si no cabe
+  antes de la fecha límite se rechaza con un mensaje claro.
+- **Guardado del plan:** reemplaza solo las sesiones no completadas de la
+  asignatura (nunca borra el histórico completado).
+- **Replanificación:** recoloca todas las pendientes desde el momento actual,
+  respetando capacidad diaria menos el tiempo ya usado por sesiones
+  completadas. Guarda `inicio_original` para poder deshacer el último cambio.
+- **Calendario:** el rango se consulta a Rust por fechas ISO; las vistas
+  mensual/semanal/diaria son locales y no hacen peticiones de red.
+
+## Verificación de E3 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 25 pruebas verdes, 2 ignoradas (integración opcional de E2).
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 11 pruebas verdes.
+- `flutter build windows --debug`: correcto.
+- Arranque real del `.exe` durante 10 s: proceso vivo (migración `0003`).
 
 ## Verificación de E2 (resultados)
 
@@ -115,7 +158,6 @@ Cubre FR-003 (PDF/TXT/imágenes), FR-017 y RES-005.
 
 ## Pendiente por etapas (según §12)
 
-- E3: generación de plan, calendario y replanificación (FR-006/007/008).
 - E4: flashcards, SRS y dominio por tema (FR-009/011).
 - E5: XP, rachas y niveles (FR-012/013).
 - E6: asistente IA local GGUF (FR-014/016, RES-004).

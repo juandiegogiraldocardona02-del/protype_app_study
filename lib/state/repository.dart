@@ -1,6 +1,18 @@
 import '../bridge/bridge.dart';
 
-export '../bridge/bridge.dart' show DocumentDto, ImportOutcomeDto, ProfileDto, SubjectDto;
+export '../bridge/bridge.dart'
+    show
+        AvailabilityDayDto,
+        DocumentDto,
+        ImportOutcomeDto,
+        PlanProposalDto,
+        PlanSettingsDto,
+        PlannedSessionDto,
+        ProfileDto,
+        ReplanResultDto,
+        SessionDto,
+        SubjectDto,
+        TopicDto;
 
 abstract class StudyRepository {
   Future<List<ProfileDto>> listProfiles();
@@ -26,4 +38,39 @@ abstract class StudyRepository {
   Future<void> deleteDocument(int id);
 
   Future<bool> ocrAvailable();
+
+  Future<List<TopicDto>> listTopics(int subjectId);
+
+  Future<TopicDto> createTopic(int subjectId, String name, double difficulty);
+
+  Future<TopicDto> updateTopic(int id, String name, double difficulty);
+
+  Future<void> deleteTopic(int id);
+
+  Future<PlanSettingsDto> getPlanSettings(int subjectId);
+
+  Future<PlanSettingsDto> savePlanSettings(
+    int subjectId,
+    int sessionMinutes,
+    int startHour,
+    String deadline,
+    List<AvailabilityDayDto> availability,
+  );
+
+  Future<PlanProposalDto> previewPlan(int subjectId);
+
+  Future<int> savePlan(int subjectId, List<PlannedSessionDto> sessions);
+
+  Future<List<SessionDto>> listSessions(
+    int profileId,
+    int? subjectId,
+    String start,
+    String end,
+  );
+
+  Future<void> setSessionState(int id, String state);
+
+  Future<ReplanResultDto> replanSubject(int subjectId);
+
+  Future<int> revertReplan(int subjectId);
 }

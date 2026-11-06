@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -67,6 +67,101 @@ Future<void> deleteDocument({required PlatformInt64 id}) =>
     RustLib.instance.api.crateBridgeDeleteDocument(id: id);
 
 Future<bool> ocrAvailable() => RustLib.instance.api.crateBridgeOcrAvailable();
+
+Future<List<TopicDto>> listTopics({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeListTopics(subjectId: subjectId);
+
+Future<TopicDto> createTopic({
+  required PlatformInt64 subjectId,
+  required String name,
+  required double difficulty,
+}) => RustLib.instance.api.crateBridgeCreateTopic(
+  subjectId: subjectId,
+  name: name,
+  difficulty: difficulty,
+);
+
+Future<TopicDto> updateTopic({
+  required PlatformInt64 id,
+  required String name,
+  required double difficulty,
+}) => RustLib.instance.api.crateBridgeUpdateTopic(
+  id: id,
+  name: name,
+  difficulty: difficulty,
+);
+
+Future<void> deleteTopic({required PlatformInt64 id}) =>
+    RustLib.instance.api.crateBridgeDeleteTopic(id: id);
+
+Future<PlanSettingsDto> getPlanSettings({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeGetPlanSettings(subjectId: subjectId);
+
+Future<PlanSettingsDto> savePlanSettings({
+  required PlatformInt64 subjectId,
+  required PlatformInt64 sessionMinutes,
+  required PlatformInt64 startHour,
+  required String deadline,
+  required List<AvailabilityDayDto> availability,
+}) => RustLib.instance.api.crateBridgeSavePlanSettings(
+  subjectId: subjectId,
+  sessionMinutes: sessionMinutes,
+  startHour: startHour,
+  deadline: deadline,
+  availability: availability,
+);
+
+Future<PlanProposalDto> previewPlan({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgePreviewPlan(subjectId: subjectId);
+
+Future<PlatformInt64> savePlan({
+  required PlatformInt64 subjectId,
+  required List<PlannedSessionDto> sessions,
+}) => RustLib.instance.api.crateBridgeSavePlan(
+  subjectId: subjectId,
+  sessions: sessions,
+);
+
+Future<List<SessionDto>> listSessions({
+  required PlatformInt64 profileId,
+  PlatformInt64? subjectId,
+  required String start,
+  required String end,
+}) => RustLib.instance.api.crateBridgeListSessions(
+  profileId: profileId,
+  subjectId: subjectId,
+  start: start,
+  end: end,
+);
+
+Future<void> setSessionState({
+  required PlatformInt64 id,
+  required String state,
+}) => RustLib.instance.api.crateBridgeSetSessionState(id: id, state: state);
+
+Future<ReplanResultDto> replanSubject({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeReplanSubject(subjectId: subjectId);
+
+Future<PlatformInt64> revertReplan({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeRevertReplan(subjectId: subjectId);
+
+class AvailabilityDayDto {
+  final PlatformInt64 weekday;
+  final PlatformInt64 minutes;
+
+  const AvailabilityDayDto({required this.weekday, required this.minutes});
+
+  @override
+  int get hashCode => weekday.hashCode ^ minutes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AvailabilityDayDto &&
+          runtimeType == other.runtimeType &&
+          weekday == other.weekday &&
+          minutes == other.minutes;
+}
 
 class DocumentDto {
   final PlatformInt64 id;
@@ -154,6 +249,107 @@ class ImportOutcomeDto {
           message == other.message;
 }
 
+class PlanProposalDto {
+  final List<PlannedSessionDto> sessions;
+  final PlatformInt64 totalMinutes;
+  final PlatformInt64 weeklyMinutes;
+  final String lastDate;
+
+  const PlanProposalDto({
+    required this.sessions,
+    required this.totalMinutes,
+    required this.weeklyMinutes,
+    required this.lastDate,
+  });
+
+  @override
+  int get hashCode =>
+      sessions.hashCode ^
+      totalMinutes.hashCode ^
+      weeklyMinutes.hashCode ^
+      lastDate.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlanProposalDto &&
+          runtimeType == other.runtimeType &&
+          sessions == other.sessions &&
+          totalMinutes == other.totalMinutes &&
+          weeklyMinutes == other.weeklyMinutes &&
+          lastDate == other.lastDate;
+}
+
+class PlanSettingsDto {
+  final PlatformInt64 subjectId;
+  final PlatformInt64 sessionMinutes;
+  final PlatformInt64 startHour;
+  final String deadline;
+  final List<AvailabilityDayDto> availability;
+
+  const PlanSettingsDto({
+    required this.subjectId,
+    required this.sessionMinutes,
+    required this.startHour,
+    required this.deadline,
+    required this.availability,
+  });
+
+  @override
+  int get hashCode =>
+      subjectId.hashCode ^
+      sessionMinutes.hashCode ^
+      startHour.hashCode ^
+      deadline.hashCode ^
+      availability.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlanSettingsDto &&
+          runtimeType == other.runtimeType &&
+          subjectId == other.subjectId &&
+          sessionMinutes == other.sessionMinutes &&
+          startHour == other.startHour &&
+          deadline == other.deadline &&
+          availability == other.availability;
+}
+
+class PlannedSessionDto {
+  final PlatformInt64? topicId;
+  final String topicName;
+  final String start;
+  final PlatformInt64 durationMin;
+  final String state;
+
+  const PlannedSessionDto({
+    this.topicId,
+    required this.topicName,
+    required this.start,
+    required this.durationMin,
+    required this.state,
+  });
+
+  @override
+  int get hashCode =>
+      topicId.hashCode ^
+      topicName.hashCode ^
+      start.hashCode ^
+      durationMin.hashCode ^
+      state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlannedSessionDto &&
+          runtimeType == other.runtimeType &&
+          topicId == other.topicId &&
+          topicName == other.topicName &&
+          start == other.start &&
+          durationMin == other.durationMin &&
+          state == other.state;
+}
+
 class ProfileDto {
   final PlatformInt64 id;
   final String name;
@@ -176,6 +372,79 @@ class ProfileDto {
           id == other.id &&
           name == other.name &&
           configJson == other.configJson;
+}
+
+class ReplanResultDto {
+  final PlatformInt64 moved;
+  final String message;
+
+  const ReplanResultDto({required this.moved, required this.message});
+
+  @override
+  int get hashCode => moved.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReplanResultDto &&
+          runtimeType == other.runtimeType &&
+          moved == other.moved &&
+          message == other.message;
+}
+
+class SessionDto {
+  final PlatformInt64 id;
+  final PlatformInt64 subjectId;
+  final PlatformInt64? topicId;
+  final String? topicName;
+  final String subjectName;
+  final String subjectColor;
+  final String start;
+  final PlatformInt64 durationMin;
+  final String state;
+  final String? originalStart;
+
+  const SessionDto({
+    required this.id,
+    required this.subjectId,
+    this.topicId,
+    this.topicName,
+    required this.subjectName,
+    required this.subjectColor,
+    required this.start,
+    required this.durationMin,
+    required this.state,
+    this.originalStart,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      subjectId.hashCode ^
+      topicId.hashCode ^
+      topicName.hashCode ^
+      subjectName.hashCode ^
+      subjectColor.hashCode ^
+      start.hashCode ^
+      durationMin.hashCode ^
+      state.hashCode ^
+      originalStart.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SessionDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          subjectId == other.subjectId &&
+          topicId == other.topicId &&
+          topicName == other.topicName &&
+          subjectName == other.subjectName &&
+          subjectColor == other.subjectColor &&
+          start == other.start &&
+          durationMin == other.durationMin &&
+          state == other.state &&
+          originalStart == other.originalStart;
 }
 
 class SubjectDto {
@@ -211,4 +480,43 @@ class SubjectDto {
           name == other.name &&
           color == other.color &&
           xpConfigJson == other.xpConfigJson;
+}
+
+class TopicDto {
+  final PlatformInt64 id;
+  final PlatformInt64 subjectId;
+  final PlatformInt64? parentId;
+  final String name;
+  final double difficulty;
+  final double mastery;
+
+  const TopicDto({
+    required this.id,
+    required this.subjectId,
+    this.parentId,
+    required this.name,
+    required this.difficulty,
+    required this.mastery,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      subjectId.hashCode ^
+      parentId.hashCode ^
+      name.hashCode ^
+      difficulty.hashCode ^
+      mastery.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TopicDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          subjectId == other.subjectId &&
+          parentId == other.parentId &&
+          name == other.name &&
+          difficulty == other.difficulty &&
+          mastery == other.mastery;
 }

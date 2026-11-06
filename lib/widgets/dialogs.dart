@@ -66,9 +66,7 @@ Future<String?> showNameDialog(
   );
 }
 
-typedef SubjectFormResult = ({String name, String color});
-
-Future<SubjectFormResult?> showSubjectDialog(
+typedef SubjectFormResult = ({String name, String color});Future<SubjectFormResult?> showSubjectDialog(
   BuildContext context, {
   String initialName = '',
   String initialColor = '#4F46E5',
@@ -180,6 +178,78 @@ class _ColorDot extends StatelessWidget {
       ),
     );
   }
+}
+
+typedef TopicFormResult = ({String name, double difficulty});
+
+Future<TopicFormResult?> showTopicDialog(
+  BuildContext context, {
+  String initialName = '',
+  double initialDifficulty = 1,
+  String title = 'Nuevo tema',
+}) {
+  final controller = TextEditingController(text: initialName);
+  var difficulty = initialDifficulty.clamp(1, 5).toDouble();
+  return showDialog<TopicFormResult>(
+    context: context,
+    builder: (context) {
+      String? errorText;
+      return StatefulBuilder(
+        builder: (context, setState) {
+          void submit() {
+            final value = controller.text.trim();
+            if (value.isEmpty) {
+              setState(() => errorText = 'El nombre no puede estar vacío');
+              return;
+            }
+            Navigator.of(context).pop((name: value, difficulty: difficulty));
+          }
+
+          return AlertDialog(
+            title: Text(title),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre del tema',
+                      errorText: errorText,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => submit(),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Dificultad: ${difficulty.round()} de 5',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  Slider(
+                    value: difficulty,
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    label: difficulty.round().toString(),
+                    onChanged: (value) => setState(() => difficulty = value),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(onPressed: submit, child: const Text('Guardar')),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 Future<bool> showConfirmDialog(

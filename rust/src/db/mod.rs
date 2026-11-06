@@ -1,11 +1,13 @@
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
-use chrono::{SecondsFormat, Utc};
+use chrono::{Days, Local, NaiveDate, NaiveDateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
-use crate::domain::{Document, Profile, Subject};
+use crate::domain::{
+    AvailabilityDay, Document, PlanSettings, PlannedSession, Profile, Session, Subject, Topic,
+};
 use crate::error::{CoreError, CoreResult};
 
 const MIGRATIONS: &[(i64, &str)] = &[
@@ -14,6 +16,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         2,
         include_str!("../../migrations/0002_documents_nombre.sql"),
     ),
+    (3, include_str!("../../migrations/0003_planning.sql")),
 ];
 
 const MAX_NAME_LEN: usize = 120;
@@ -333,6 +336,384 @@ impl Database {
         Ok(())
     }
 
+    pub fn create_topic(
+        &mut self,
+        subject_id: i64,
+        name: &str,
+        difficulty: f64,
+    ) -> CoreResult<Topic> {
+        self.get_subject(subject_id)?;
+        let name = validate_name(name)?;
+        let difficulty = validate_difficulty(difficulty)?;
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO topics (subject_id, nombre, dificultad) VALUES (?1, ?2, ?3)",
+            params![subject_id, name, difficulty],
+        )?;
+        let id = tx.last_insert_rowid();
+        log_change(&tx, "topic", id, "crear")?;
+        tx.commit()?;
+        self.get_topic(id)
+    }
+
+    pub fn get_topic(&self, id: i64) -> CoreResult<Topic> {
+        self.conn
+            .query_row(
+                "SELECT id, subject_id, parent_id, nombre, dificultad, dominio
+                 FROM topics WHERE id = ?1",
+                params![id],
+                map_topic,
+            )
+            .optional()?
+            .ok_or_else(|| CoreError::NotFound(format!("tema {id}")))
+    }
+
+    pub fn list_topics(&self, subject_id: i64) -> CoreResult<Vec<Topic>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, subject_id, parent_id, nombre, dificultad, dominio
+             FROM topics WHERE subject_id = ?1 ORDER BY id",
+        )?;
+        let rows = stmt.query_map(params![subject_id], map_topic)?;
+        let mut topics = Vec::new();
+        for row in rows {
+            topics.push(row?);
+        }
+        Ok(topics)
+    }
+
+    pub fn update_topic(&mut self, id: i64, name: &str, difficulty: f64) -> CoreResult<Topic> {
+        let name = validate_name(name)?;
+        let difficulty = validate_difficulty(difficulty)?;
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE topics SET nombre = ?2, dificultad = ?3 WHERE id = ?1",
+            params![id, name, difficulty],
+        )?;
+        if changed == 0 {
+            return Err(CoreError::NotFound(format!("tema {id}")));
+        }
+        log_change(&tx, "topic", id, "editar")?;
+        tx.commit()?;
+        self.get_topic(id)
+    }
+
+    pub fn delete_topic(&mut self, id: i64) -> CoreResult<()> {
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute("DELETE FROM topics WHERE id = ?1", params![id])?;
+        if changed == 0 {
+            return Err(CoreError::NotFound(format!("tema {id}")));
+        }
+        log_change(&tx, "topic", id, "eliminar")?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn get_plan_settings(&self, subject_id: i64) -> CoreResult<PlanSettings> {
+        self.get_subject(subject_id)?;
+        let stored = self
+            .conn
+            .query_row(
+                "SELECT duracion_sesion_min, hora_inicio, fecha_limite
+                 FROM plan_settings WHERE subject_id = ?1",
+                params![subject_id],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let mut availability = self.list_availability(subject_id)?;
+        match stored {
+            Some((session_minutes, start_hour, deadline)) => Ok(PlanSettings {
+                subject_id,
+                session_minutes,
+                start_hour,
+                deadline,
+                availability,
+            }),
+            None => {
+                if availability.is_empty() {
+                    availability = (1..=5)
+                        .map(|weekday| AvailabilityDay {
+                            weekday,
+                            minutes: 120,
+                        })
+                        .collect();
+                }
+                Ok(PlanSettings {
+                    subject_id,
+                    session_minutes: 50,
+                    start_hour: 8,
+                    deadline: (Local::now().date_naive() + Days::new(30)).to_string(),
+                    availability,
+                })
+            }
+        }
+    }
+
+    pub fn list_availability(&self, subject_id: i64) -> CoreResult<Vec<AvailabilityDay>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT dia_semana, minutos FROM availability
+             WHERE subject_id = ?1 ORDER BY dia_semana",
+        )?;
+        let rows = stmt.query_map(params![subject_id], |row| {
+            Ok(AvailabilityDay {
+                weekday: row.get(0)?,
+                minutes: row.get(1)?,
+            })
+        })?;
+        let mut days = Vec::new();
+        for row in rows {
+            days.push(row?);
+        }
+        Ok(days)
+    }
+
+    pub fn save_plan_settings(&mut self, settings: &PlanSettings) -> CoreResult<PlanSettings> {
+        self.get_subject(settings.subject_id)?;
+        if !(15..=240).contains(&settings.session_minutes) {
+            return Err(CoreError::Validation(
+                "la duración de sesión debe estar entre 15 y 240 minutos".into(),
+            ));
+        }
+        if !(0..=23).contains(&settings.start_hour) {
+            return Err(CoreError::Validation(
+                "la hora de inicio debe estar entre 0 y 23".into(),
+            ));
+        }
+        if NaiveDate::parse_from_str(&settings.deadline, "%Y-%m-%d").is_err() {
+            return Err(CoreError::Validation(
+                "la fecha límite debe tener el formato AAAA-MM-DD".into(),
+            ));
+        }
+        if settings.availability.is_empty() {
+            return Err(CoreError::Validation(
+                "selecciona al menos un día de disponibilidad".into(),
+            ));
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for day in &settings.availability {
+            if !(1..=7).contains(&day.weekday) {
+                return Err(CoreError::Validation(
+                    "el día de la semana debe estar entre 1 (lunes) y 7 (domingo)".into(),
+                ));
+            }
+            if !(1..=1440).contains(&day.minutes) {
+                return Err(CoreError::Validation(
+                    "los minutos por día deben estar entre 1 y 1440".into(),
+                ));
+            }
+            if !seen.insert(day.weekday) {
+                return Err(CoreError::Validation(
+                    "hay días de disponibilidad duplicados".into(),
+                ));
+            }
+        }
+
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO plan_settings
+                (subject_id, duracion_sesion_min, hora_inicio, fecha_limite,
+                 actualizado_en)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(subject_id) DO UPDATE SET
+                duracion_sesion_min = excluded.duracion_sesion_min,
+                hora_inicio = excluded.hora_inicio,
+                fecha_limite = excluded.fecha_limite,
+                actualizado_en = excluded.actualizado_en",
+            params![
+                settings.subject_id,
+                settings.session_minutes,
+                settings.start_hour,
+                settings.deadline,
+                timestamp,
+            ],
+        )?;
+        tx.execute(
+            "DELETE FROM availability WHERE subject_id = ?1",
+            params![settings.subject_id],
+        )?;
+        for day in &settings.availability {
+            tx.execute(
+                "INSERT INTO availability (subject_id, dia_semana, minutos)
+                 VALUES (?1, ?2, ?3)",
+                params![settings.subject_id, day.weekday, day.minutes],
+            )?;
+        }
+        log_change(&tx, "subject", settings.subject_id, "configurar_plan")?;
+        tx.commit()?;
+        self.get_plan_settings(settings.subject_id)
+    }
+
+    pub fn replace_pending_sessions(
+        &mut self,
+        subject_id: i64,
+        sessions: &[PlannedSession],
+    ) -> CoreResult<i64> {
+        if sessions.is_empty() {
+            return Err(CoreError::Validation(
+                "el plan debe contener al menos una sesión".into(),
+            ));
+        }
+        self.get_subject(subject_id)?;
+        for session in sessions {
+            if NaiveDateTime::parse_from_str(&session.start, "%Y-%m-%dT%H:%M:%S").is_err() {
+                return Err(CoreError::Validation(format!(
+                    "fecha de sesión inválida: {}",
+                    session.start
+                )));
+            }
+            if session.duration_min <= 0 {
+                return Err(CoreError::Validation(
+                    "la duración de cada sesión debe ser positiva".into(),
+                ));
+            }
+            if let Some(topic_id) = session.topic_id {
+                let count: i64 = self.conn.query_row(
+                    "SELECT COUNT(*) FROM topics WHERE id = ?1 AND subject_id = ?2",
+                    params![topic_id, subject_id],
+                    |row| row.get(0),
+                )?;
+                if count == 0 {
+                    return Err(CoreError::Validation(format!(
+                        "el tema {topic_id} no pertenece a la asignatura"
+                    )));
+                }
+            }
+        }
+
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "DELETE FROM sessions WHERE subject_id = ?1 AND estado <> 'completada'",
+            params![subject_id],
+        )?;
+        for session in sessions {
+            tx.execute(
+                "INSERT INTO sessions
+                    (subject_id, topic_id, inicio, duracion_min, estado)
+                 VALUES (?1, ?2, ?3, ?4, 'pendiente')",
+                params![
+                    subject_id,
+                    session.topic_id,
+                    session.start,
+                    session.duration_min
+                ],
+            )?;
+        }
+        log_change(&tx, "subject", subject_id, "guardar_plan")?;
+        tx.commit()?;
+        Ok(sessions.len() as i64)
+    }
+
+    pub fn list_sessions(
+        &self,
+        profile_id: i64,
+        subject_id: Option<i64>,
+        start: &str,
+        end: &str,
+    ) -> CoreResult<Vec<Session>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT s.id, s.subject_id, s.topic_id, t.nombre, sub.nombre,
+                    sub.color, s.inicio, s.duracion_min, s.estado,
+                    s.inicio_original
+             FROM sessions s
+             JOIN subjects sub ON sub.id = s.subject_id
+             LEFT JOIN topics t ON t.id = s.topic_id
+             WHERE sub.profile_id = ?1
+               AND s.inicio >= ?2 AND s.inicio < ?3
+               AND (?4 IS NULL OR s.subject_id = ?4)
+             ORDER BY s.inicio, s.id",
+        )?;
+        let rows = stmt.query_map(params![profile_id, start, end, subject_id], map_session)?;
+        let mut sessions = Vec::new();
+        for row in rows {
+            sessions.push(row?);
+        }
+        Ok(sessions)
+    }
+
+    pub fn sessions_for_subject(&self, subject_id: i64) -> CoreResult<Vec<Session>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT s.id, s.subject_id, s.topic_id, t.nombre, sub.nombre,
+                    sub.color, s.inicio, s.duracion_min, s.estado,
+                    s.inicio_original
+             FROM sessions s
+             JOIN subjects sub ON sub.id = s.subject_id
+             LEFT JOIN topics t ON t.id = s.topic_id
+             WHERE s.subject_id = ?1
+             ORDER BY s.inicio, s.id",
+        )?;
+        let rows = stmt.query_map(params![subject_id], map_session)?;
+        let mut sessions = Vec::new();
+        for row in rows {
+            sessions.push(row?);
+        }
+        Ok(sessions)
+    }
+
+    pub fn set_session_state(&mut self, id: i64, state: &str) -> CoreResult<()> {
+        if state != "pendiente" && state != "completada" {
+            return Err(CoreError::Validation(
+                "estado de sesión no válido; usa pendiente o completada".into(),
+            ));
+        }
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE sessions SET estado = ?2 WHERE id = ?1",
+            params![id, state],
+        )?;
+        if changed == 0 {
+            return Err(CoreError::NotFound(format!("sesión {id}")));
+        }
+        log_change(&tx, "session", id, state)?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn apply_replan(&mut self, moves: &[(i64, String)]) -> CoreResult<i64> {
+        let tx = self.conn.transaction()?;
+        for (id, start) in moves {
+            if NaiveDateTime::parse_from_str(start, "%Y-%m-%dT%H:%M:%S").is_err() {
+                return Err(CoreError::Validation(format!(
+                    "fecha de replanificación inválida: {start}"
+                )));
+            }
+            let changed = tx.execute(
+                "UPDATE sessions
+                 SET inicio = ?2,
+                     inicio_original = COALESCE(inicio_original, inicio),
+                     estado = 'replanificada'
+                 WHERE id = ?1",
+                params![id, start],
+            )?;
+            if changed == 0 {
+                return Err(CoreError::NotFound(format!("sesión {id}")));
+            }
+            log_change(&tx, "session", *id, "replanificar")?;
+        }
+        tx.commit()?;
+        Ok(moves.len() as i64)
+    }
+
+    pub fn revert_replan(&mut self, subject_id: i64) -> CoreResult<i64> {
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE sessions
+             SET inicio = COALESCE(inicio_original, inicio),
+                 estado = 'pendiente',
+                 inicio_original = NULL
+             WHERE subject_id = ?1 AND inicio_original IS NOT NULL",
+            params![subject_id],
+        )?;
+        log_change(&tx, "subject", subject_id, "revertir_replan")?;
+        tx.commit()?;
+        Ok(changed as i64)
+    }
+
     pub fn change_count(&self) -> CoreResult<i64> {
         Ok(self
             .conn
@@ -360,6 +741,41 @@ fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
         extraction_message: row.get(8)?,
         text_chars: row.get(9)?,
     })
+}
+
+fn map_topic(row: &rusqlite::Row<'_>) -> rusqlite::Result<Topic> {
+    Ok(Topic {
+        id: row.get(0)?,
+        subject_id: row.get(1)?,
+        parent_id: row.get(2)?,
+        name: row.get(3)?,
+        difficulty: row.get(4)?,
+        mastery: row.get(5)?,
+    })
+}
+
+fn map_session(row: &rusqlite::Row<'_>) -> rusqlite::Result<Session> {
+    Ok(Session {
+        id: row.get(0)?,
+        subject_id: row.get(1)?,
+        topic_id: row.get(2)?,
+        topic_name: row.get(3)?,
+        subject_name: row.get(4)?,
+        subject_color: row.get(5)?,
+        start: row.get(6)?,
+        duration_min: row.get(7)?,
+        state: row.get(8)?,
+        original_start: row.get(9)?,
+    })
+}
+
+fn validate_difficulty(value: f64) -> CoreResult<f64> {
+    if !value.is_finite() || !(1.0..=5.0).contains(&value) {
+        return Err(CoreError::Validation(
+            "la dificultad debe estar entre 1 y 5".to_string(),
+        ));
+    }
+    Ok(value)
 }
 
 fn validate_name(name: &str) -> CoreResult<&str> {

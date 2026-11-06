@@ -53,6 +53,61 @@ final documentsProvider = FutureProvider.family<List<DocumentDto>, int>((
   return ref.watch(repositoryProvider).listDocuments(subjectId);
 });
 
+final topicsProvider = FutureProvider.family<List<TopicDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listTopics(subjectId);
+});
+
+final planSettingsProvider = FutureProvider.family<PlanSettingsDto, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).getPlanSettings(subjectId);
+});
+
+class SessionQuery {
+  const SessionQuery({
+    required this.profileId,
+    required this.subjectId,
+    required this.start,
+    required this.end,
+  });
+
+  final int profileId;
+  final int? subjectId;
+  final String start;
+  final String end;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SessionQuery &&
+          runtimeType == other.runtimeType &&
+          profileId == other.profileId &&
+          subjectId == other.subjectId &&
+          start == other.start &&
+          end == other.end;
+
+  @override
+  int get hashCode => Object.hash(profileId, subjectId, start, end);
+}
+
+final sessionsProvider = FutureProvider.family<List<SessionDto>, SessionQuery>((
+  ref,
+  query,
+) {
+  return ref
+      .watch(repositoryProvider)
+      .listSessions(
+        query.profileId,
+        query.subjectId,
+        query.start,
+        query.end,
+      );
+});
+
 class NavigationIndex extends Notifier<int> {
   @override
   int build() => 0;
@@ -147,3 +202,93 @@ class DocumentActions {
 final documentActionsProvider = Provider<DocumentActions>(
   (ref) => DocumentActions(ref),
 );
+
+class TopicActions {
+  TopicActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<TopicDto> create(
+    int subjectId,
+    String name,
+    double difficulty,
+  ) async {
+    final created = await _repo.createTopic(subjectId, name, difficulty);
+    _ref.invalidate(topicsProvider(subjectId));
+    return created;
+  }
+
+  Future<void> update(
+    int subjectId,
+    int id,
+    String name,
+    double difficulty,
+  ) async {
+    await _repo.updateTopic(id, name, difficulty);
+    _ref.invalidate(topicsProvider(subjectId));
+  }
+
+  Future<void> delete(int subjectId, int id) async {
+    await _repo.deleteTopic(id);
+    _ref.invalidate(topicsProvider(subjectId));
+  }
+}
+
+final topicActionsProvider = Provider<TopicActions>(
+  (ref) => TopicActions(ref),
+);
+
+class PlanActions {
+  PlanActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<PlanSettingsDto> saveSettings(
+    int subjectId,
+    int sessionMinutes,
+    int startHour,
+    String deadline,
+    List<AvailabilityDayDto> availability,
+  ) async {
+    final saved = await _repo.savePlanSettings(
+      subjectId,
+      sessionMinutes,
+      startHour,
+      deadline,
+      availability,
+    );
+    _ref.invalidate(planSettingsProvider(subjectId));
+    return saved;
+  }
+
+  Future<PlanProposalDto> preview(int subjectId) => _repo.previewPlan(subjectId);
+
+  Future<int> save(int subjectId, List<PlannedSessionDto> sessions) async {
+    final count = await _repo.savePlan(subjectId, sessions);
+    _ref.invalidate(sessionsProvider);
+    return count;
+  }
+
+  Future<void> setSessionState(int id, String state) async {
+    await _repo.setSessionState(id, state);
+    _ref.invalidate(sessionsProvider);
+  }
+
+  Future<ReplanResultDto> replan(int subjectId) async {
+    final result = await _repo.replanSubject(subjectId);
+    _ref.invalidate(sessionsProvider);
+    return result;
+  }
+
+  Future<int> revert(int subjectId) async {
+    final count = await _repo.revertReplan(subjectId);
+    _ref.invalidate(sessionsProvider);
+    return count;
+  }
+}
+
+final planActionsProvider = Provider<PlanActions>((ref) => PlanActions(ref));

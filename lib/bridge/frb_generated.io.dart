@@ -28,10 +28,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  AvailabilityDayDto dco_decode_availability_day_dto(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   DocumentDto dco_decode_document_dto(dynamic raw);
+
+  @protected
+  double dco_decode_f_64(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
@@ -40,7 +49,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImportOutcomeDto dco_decode_import_outcome_dto(dynamic raw);
 
   @protected
+  List<AvailabilityDayDto> dco_decode_list_availability_day_dto(dynamic raw);
+
+  @protected
   List<DocumentDto> dco_decode_list_document_dto(dynamic raw);
+
+  @protected
+  List<PlannedSessionDto> dco_decode_list_planned_session_dto(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -49,16 +64,43 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ProfileDto> dco_decode_list_profile_dto(dynamic raw);
 
   @protected
+  List<SessionDto> dco_decode_list_session_dto(dynamic raw);
+
+  @protected
   List<SubjectDto> dco_decode_list_subject_dto(dynamic raw);
+
+  @protected
+  List<TopicDto> dco_decode_list_topic_dto(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  PlanProposalDto dco_decode_plan_proposal_dto(dynamic raw);
+
+  @protected
+  PlanSettingsDto dco_decode_plan_settings_dto(dynamic raw);
+
+  @protected
+  PlannedSessionDto dco_decode_planned_session_dto(dynamic raw);
+
+  @protected
   ProfileDto dco_decode_profile_dto(dynamic raw);
 
   @protected
+  ReplanResultDto dco_decode_replan_result_dto(dynamic raw);
+
+  @protected
+  SessionDto dco_decode_session_dto(dynamic raw);
+
+  @protected
   SubjectDto dco_decode_subject_dto(dynamic raw);
+
+  @protected
+  TopicDto dco_decode_topic_dto(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -73,10 +115,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AvailabilityDayDto sse_decode_availability_day_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   DocumentDto sse_decode_document_dto(SseDeserializer deserializer);
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -85,7 +138,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ImportOutcomeDto sse_decode_import_outcome_dto(SseDeserializer deserializer);
 
   @protected
+  List<AvailabilityDayDto> sse_decode_list_availability_day_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<DocumentDto> sse_decode_list_document_dto(SseDeserializer deserializer);
+
+  @protected
+  List<PlannedSessionDto> sse_decode_list_planned_session_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -94,16 +157,45 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ProfileDto> sse_decode_list_profile_dto(SseDeserializer deserializer);
 
   @protected
+  List<SessionDto> sse_decode_list_session_dto(SseDeserializer deserializer);
+
+  @protected
   List<SubjectDto> sse_decode_list_subject_dto(SseDeserializer deserializer);
+
+  @protected
+  List<TopicDto> sse_decode_list_topic_dto(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  PlanProposalDto sse_decode_plan_proposal_dto(SseDeserializer deserializer);
+
+  @protected
+  PlanSettingsDto sse_decode_plan_settings_dto(SseDeserializer deserializer);
+
+  @protected
+  PlannedSessionDto sse_decode_planned_session_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ProfileDto sse_decode_profile_dto(SseDeserializer deserializer);
 
   @protected
+  ReplanResultDto sse_decode_replan_result_dto(SseDeserializer deserializer);
+
+  @protected
+  SessionDto sse_decode_session_dto(SseDeserializer deserializer);
+
+  @protected
   SubjectDto sse_decode_subject_dto(SseDeserializer deserializer);
+
+  @protected
+  TopicDto sse_decode_topic_dto(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -124,10 +216,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_availability_day_dto(
+    AvailabilityDayDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_document_dto(DocumentDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
@@ -139,8 +246,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_availability_day_dto(
+    List<AvailabilityDayDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_document_dto(
     List<DocumentDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_planned_session_dto(
+    List<PlannedSessionDto> self,
     SseSerializer serializer,
   );
 
@@ -157,19 +276,64 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_session_dto(
+    List<SessionDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_subject_dto(
     List<SubjectDto> self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_list_topic_dto(List<TopicDto> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_plan_proposal_dto(
+    PlanProposalDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_plan_settings_dto(
+    PlanSettingsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_planned_session_dto(
+    PlannedSessionDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_profile_dto(ProfileDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_replan_result_dto(
+    ReplanResultDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_session_dto(SessionDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_subject_dto(SubjectDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_topic_dto(TopicDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

@@ -4,6 +4,7 @@ import '../bridge/bridge.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/document_library.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/subject_agenda.dart';
 
 class SubjectSpaceScreen extends StatelessWidget {
   const SubjectSpaceScreen({super.key, required this.subject});
@@ -51,13 +52,7 @@ class SubjectSpaceScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            const _StagePanel(
-              icon: Icons.event_note_outlined,
-              title: 'Agenda de la asignatura',
-              message:
-                  'Aquí vivirán las sesiones planificadas. La generación y '
-                  'replanificación de sesiones llega en la etapa E3.',
-            ),
+            SubjectAgendaPanel(subject: subject),
             DocumentLibrary(subjectId: subject.id),
             const _StagePanel(
               icon: Icons.checklist_outlined,

@@ -44,6 +44,68 @@ pub struct ImportOutcomeDto {
     pub message: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct TopicDto {
+    pub id: i64,
+    pub subject_id: i64,
+    pub parent_id: Option<i64>,
+    pub name: String,
+    pub difficulty: f64,
+    pub mastery: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct AvailabilityDayDto {
+    pub weekday: i64,
+    pub minutes: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlanSettingsDto {
+    pub subject_id: i64,
+    pub session_minutes: i64,
+    pub start_hour: i64,
+    pub deadline: String,
+    pub availability: Vec<AvailabilityDayDto>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlannedSessionDto {
+    pub topic_id: Option<i64>,
+    pub topic_name: String,
+    pub start: String,
+    pub duration_min: i64,
+    pub state: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlanProposalDto {
+    pub sessions: Vec<PlannedSessionDto>,
+    pub total_minutes: i64,
+    pub weekly_minutes: i64,
+    pub last_date: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct SessionDto {
+    pub id: i64,
+    pub subject_id: i64,
+    pub topic_id: Option<i64>,
+    pub topic_name: Option<String>,
+    pub subject_name: String,
+    pub subject_color: String,
+    pub start: String,
+    pub duration_min: i64,
+    pub state: String,
+    pub original_start: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReplanResultDto {
+    pub moved: i64,
+    pub message: String,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -89,6 +151,89 @@ impl From<domain::ImportOutcome> for ImportOutcomeDto {
             document: value.document.into(),
             duplicate: value.duplicate,
             ocr_used: value.ocr_used,
+            message: value.message,
+        }
+    }
+}
+
+impl From<domain::Topic> for TopicDto {
+    fn from(value: domain::Topic) -> Self {
+        Self {
+            id: value.id,
+            subject_id: value.subject_id,
+            parent_id: value.parent_id,
+            name: value.name,
+            difficulty: value.difficulty,
+            mastery: value.mastery,
+        }
+    }
+}
+
+impl From<domain::AvailabilityDay> for AvailabilityDayDto {
+    fn from(value: domain::AvailabilityDay) -> Self {
+        Self {
+            weekday: value.weekday,
+            minutes: value.minutes,
+        }
+    }
+}
+
+impl From<domain::PlanSettings> for PlanSettingsDto {
+    fn from(value: domain::PlanSettings) -> Self {
+        Self {
+            subject_id: value.subject_id,
+            session_minutes: value.session_minutes,
+            start_hour: value.start_hour,
+            deadline: value.deadline,
+            availability: value.availability.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<domain::PlannedSession> for PlannedSessionDto {
+    fn from(value: domain::PlannedSession) -> Self {
+        Self {
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+            start: value.start,
+            duration_min: value.duration_min,
+            state: value.state,
+        }
+    }
+}
+
+impl From<domain::PlanProposal> for PlanProposalDto {
+    fn from(value: domain::PlanProposal) -> Self {
+        Self {
+            sessions: value.sessions.into_iter().map(Into::into).collect(),
+            total_minutes: value.total_minutes,
+            weekly_minutes: value.weekly_minutes,
+            last_date: value.last_date,
+        }
+    }
+}
+
+impl From<domain::Session> for SessionDto {
+    fn from(value: domain::Session) -> Self {
+        Self {
+            id: value.id,
+            subject_id: value.subject_id,
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+            subject_name: value.subject_name,
+            subject_color: value.subject_color,
+            start: value.start,
+            duration_min: value.duration_min,
+            state: value.state,
+            original_start: value.original_start,
+        }
+    }
+}
+
+impl From<domain::ReplanResult> for ReplanResultDto {
+    fn from(value: domain::ReplanResult) -> Self {
+        Self {
+            moved: value.moved,
             message: value.message,
         }
     }
@@ -158,4 +303,100 @@ pub fn delete_document(id: i64) -> anyhow::Result<()> {
 
 pub fn ocr_available() -> bool {
     crate::documents::ocr_available()
+}
+
+pub fn list_topics(subject_id: i64) -> anyhow::Result<Vec<TopicDto>> {
+    let topics = db::with_db(|database| database.list_topics(subject_id))?;
+    Ok(topics.into_iter().map(TopicDto::from).collect())
+}
+
+pub fn create_topic(subject_id: i64, name: String, difficulty: f64) -> anyhow::Result<TopicDto> {
+    let topic = db::with_db(|database| database.create_topic(subject_id, &name, difficulty))?;
+    Ok(topic.into())
+}
+
+pub fn update_topic(id: i64, name: String, difficulty: f64) -> anyhow::Result<TopicDto> {
+    let topic = db::with_db(|database| database.update_topic(id, &name, difficulty))?;
+    Ok(topic.into())
+}
+
+pub fn delete_topic(id: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.delete_topic(id))?;
+    Ok(())
+}
+
+pub fn get_plan_settings(subject_id: i64) -> anyhow::Result<PlanSettingsDto> {
+    let settings = db::with_db(|database| database.get_plan_settings(subject_id))?;
+    Ok(settings.into())
+}
+
+pub fn save_plan_settings(
+    subject_id: i64,
+    session_minutes: i64,
+    start_hour: i64,
+    deadline: String,
+    availability: Vec<AvailabilityDayDto>,
+) -> anyhow::Result<PlanSettingsDto> {
+    let settings = domain::PlanSettings {
+        subject_id,
+        session_minutes,
+        start_hour,
+        deadline,
+        availability: availability
+            .into_iter()
+            .map(|day| domain::AvailabilityDay {
+                weekday: day.weekday,
+                minutes: day.minutes,
+            })
+            .collect(),
+    };
+    let saved = db::with_db(|database| database.save_plan_settings(&settings))?;
+    Ok(saved.into())
+}
+
+pub fn preview_plan(subject_id: i64) -> anyhow::Result<PlanProposalDto> {
+    let proposal = db::with_db(|database| crate::planning::preview_plan(database, subject_id))?;
+    Ok(proposal.into())
+}
+
+pub fn save_plan(subject_id: i64, sessions: Vec<PlannedSessionDto>) -> anyhow::Result<i64> {
+    let sessions: Vec<domain::PlannedSession> = sessions
+        .into_iter()
+        .map(|session| domain::PlannedSession {
+            topic_id: session.topic_id,
+            topic_name: session.topic_name,
+            start: session.start,
+            duration_min: session.duration_min,
+            state: "pendiente".to_string(),
+        })
+        .collect();
+    let count =
+        db::with_db(|database| crate::planning::save_plan(database, subject_id, &sessions))?;
+    Ok(count)
+}
+
+pub fn list_sessions(
+    profile_id: i64,
+    subject_id: Option<i64>,
+    start: String,
+    end: String,
+) -> anyhow::Result<Vec<SessionDto>> {
+    let sessions =
+        db::with_db(|database| database.list_sessions(profile_id, subject_id, &start, &end))?;
+    Ok(sessions.into_iter().map(SessionDto::from).collect())
+}
+
+pub fn set_session_state(id: i64, state: String) -> anyhow::Result<()> {
+    db::with_db(|database| database.set_session_state(id, &state))?;
+    Ok(())
+}
+
+pub fn replan_subject(subject_id: i64) -> anyhow::Result<ReplanResultDto> {
+    let result = db::with_db(|database| crate::planning::replan_now(database, subject_id))?;
+    Ok(result.into())
+}
+
+pub fn revert_replan(subject_id: i64) -> anyhow::Result<i64> {
+    let reverted = db::with_db(|database| crate::planning::revert_replan(database, subject_id))?;
+    Ok(reverted)
 }

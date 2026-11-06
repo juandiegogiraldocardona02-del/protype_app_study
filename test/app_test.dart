@@ -171,4 +171,90 @@ void main() {
     expect(find.text('Borrar.txt'), findsNothing);
     expect(await repository.listDocuments(1), isEmpty);
   });
+
+  testWidgets('añade un tema desde la agenda de la asignatura', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Añadir tema'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Mitocondrias');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mitocondrias'), findsOneWidget);
+    expect((await repository.listTopics(1)), hasLength(1));
+  });
+
+  testWidgets('genera y guarda un plan desde la agenda', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addTopic(1, name: 'La célula');
+    repository.setPlanSettings(1);
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Generar plan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Vista previa del plan'), findsOneWidget);
+
+    await tester.tap(find.textContaining('Guardar plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Plan guardado con'), findsOneWidget);
+    final start = DateTime.now()
+        .subtract(const Duration(days: 1))
+        .toIso8601String();
+    final end = DateTime.now()
+        .add(const Duration(days: 60))
+        .toIso8601String();
+    final sessions = await repository.listSessions(1, 1, start, end);
+    expect(sessions, hasLength(1));
+  });
+
+  testWidgets('el calendario muestra sesiones y permite completarlas', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final start =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}T08:00:00';
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addSession(1, topicName: 'La célula', start: start);
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Calendario').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semana'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('La célula'), findsOneWidget);
+    await tester.tap(find.text('La célula'));
+    await tester.pumpAndSettle();
+
+    final end = now
+        .add(const Duration(days: 1))
+        .toIso8601String();
+    final sessions = await repository.listSessions(
+      1,
+      1,
+      '${start.substring(0, 10)}T00:00:00',
+      end,
+    );
+    expect(sessions.single.state, 'completada');
+  });
 }
