@@ -2,7 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1–E4 completadas, E5 como siguiente paso.
+> Última actualización: Etapas E1–E5 completadas, E6 como siguiente paso.
 
 ## Repositorio
 
@@ -124,8 +124,34 @@ Cubre FR-009 (flashcards y repetición espaciada) y FR-011 (dominio por tema).
 - [x] Pruebas Flutter: 14 verdes.
 - [x] Build Windows y arranque real verificados (migración `0004` aplicada).
 
-## Decisiones de implementación tomadas
+## Etapa E5 — COMPLETADA ✅
 
+Cubre FR-012 (XP configurable) y FR-013 (niveles, insignias y rachas).
+
+- [x] Migración `0005_gamification.sql`: tabla `streaks` por perfil con racha
+      actual, mejor racha, último día de actividad, congelación y día usado.
+- [x] Rust `gamification`: configuración de XP por asignatura guardada en
+      `subjects.xp_config_json` (sección 10, tarea 20, cuestionario 30, sesión
+      15, evaluación 50, racha de 7 días 100, tema dominado 150); validación
+      0–10000.
+- [x] XP se otorga una sola vez por sesión completada (`sesion:{id}`), por tema
+      dominado (`dominar_tema:{id}`, dominio ≥ 0,8) y por hitos de racha de 7
+      días. Cambiar la configuración solo afecta a actividades futuras.
+- [x] Rachas: una actividad académica al día (sesión o repaso); se reinicia si
+      se rompe la secuencia; congelación opcional cubre un día perdido por mes.
+- [x] Niveles progresivos: nivel 1 en 0 XP y 100 XP adicionales por nivel
+      (100, 300, 600…). Insignias dinámicas por repasos, sesiones, racha,
+      nivel y temas dominados.
+- [x] API FFI: `getXpConfig`, `saveXpConfig`, `getGamificationSummary`;
+      bindings regenerados.
+- [x] Flutter: tarjeta de nivel/racha en Inicio, pantalla Estadísticas con XP,
+      progreso de nivel e insignias, y configuración de XP por asignatura en
+      la pestaña Progreso.
+- [x] Pruebas Rust: 40 verdes (+2 de integración opcionales).
+- [x] Pruebas Flutter: 17 verdes.
+- [x] Build Windows y arranque real verificados (migración `0005` aplicada).
+
+## Decisiones de implementación tomadas
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
   disponible. Si no, la imagen se importa igualmente y se avisa de que no se
   extrajo texto. No se añade ninguna llamada de red.
@@ -161,8 +187,30 @@ Cubre FR-009 (flashcards y repetición espaciada) y FR-011 (dominio por tema).
 - **Dominio:** media de los últimos 5 repasos (60 %) y minutos efectivos de
   sesiones completadas (40 %, tope 120 min). Las evaluaciones se integrarán en
   la etapa E8; entonces se ampliará la fórmula sin cambiar el esquema.
+- **XP configurable:** cada asignatura guarda sus valores en
+  `subjects.xp_config_json`; Rust los valida (0–10000) y los lee en el momento
+  de otorgar el XP, por lo que un cambio no recalcula el histórico. El registro
+  `xp_log` usa claves idempotentes (`sesion:{id}`, `dominar_tema:{id}`) para no
+  duplicar premios.
+- **Rachas:** se registra actividad al completar una sesión o repasar una
+  tarjeta; solo cuenta la primera del día local. La congelación opcional cubre
+  como máximo un día perdido por mes natural. Cada 7 días seguidos se otorga
+  el XP de racha una sola vez por hito.
+- **Niveles e insignias:** nivel 1 empieza en 0 XP y cada nivel exige 100 XP
+  más que el anterior. Las insignias se calculan al consultar el resumen
+  (repaso, sesión, racha de 7, nivel 5, tema dominado y diez repasos), sin
+  almacenar estado redundante.
 - **Historial:** cada repaso queda en `review_log` con calidad, intervalo y
   factor, lo que permite recalcular el dominio y auditar la evolución.
+
+## Verificación de E5 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 40 pruebas verdes, 2 ignoradas (integración opcional de E2).
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 17 pruebas verdes.
+- `flutter build windows --debug`: correcto.
+- Arranque real del `.exe` durante 10 s: proceso vivo (migración `0005`).
 
 ## Verificación de E4 (resultados)
 
@@ -205,7 +253,6 @@ Cubre FR-009 (flashcards y repetición espaciada) y FR-011 (dominio por tema).
 
 ## Pendiente por etapas (según §12)
 
-- E5: XP, rachas y niveles (FR-012/013).
 - E6: asistente IA local GGUF (FR-014/016, RES-004).
 - E7: `.studyplan` y copias globales (FR-002/019).
 - E8: audio whisper.cpp y evaluaciones automáticas (FR-010, RES-005).

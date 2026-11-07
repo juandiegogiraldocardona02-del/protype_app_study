@@ -1,4 +1,4 @@
-﻿import 'package:study_planner/state/repository.dart';
+import 'package:study_planner/state/repository.dart';
 
 class FakeStudyRepository implements StudyRepository {
   FakeStudyRepository();
@@ -11,6 +11,13 @@ class FakeStudyRepository implements StudyRepository {
   final Map<int, SessionDto> _sessions = <int, SessionDto>{};
   final Map<int, FlashcardDto> _flashcards = <int, FlashcardDto>{};
   final Map<int, List<int>> _reviewQualities = <int, List<int>>{};
+  final Map<int, XpConfigDto> _xpConfigs = <int, XpConfigDto>{};
+  final Map<int, int> _xpTotals = <int, int>{};
+  final Map<int, int> _currentStreaks = <int, int>{};
+  final Map<int, int> _bestStreaks = <int, int>{};
+  final Map<int, String> _lastStreakDates = <int, String>{};
+  final Set<int> _xpSessions = <int>{};
+  final Set<int> _xpMasteredTopics = <int>{};
   int _nextProfileId = 1;
   int _nextSubjectId = 1;
   int _nextDocumentId = 1;
@@ -155,9 +162,7 @@ class FakeStudyRepository implements StudyRepository {
 
   @override
   Future<List<DocumentDto>> listDocuments(int subjectId) async {
-    return List<DocumentDto>.of(
-      _documents[subjectId] ?? const <DocumentDto>[],
-    );
+    return List<DocumentDto>.of(_documents[subjectId] ?? const <DocumentDto>[]);
   }
 
   @override
@@ -371,11 +376,7 @@ class FakeStudyRepository implements StudyRepository {
   }
 
   @override
-  Future<TopicDto> updateTopic(
-    int id,
-    String name,
-    double difficulty,
-  ) async {
+  Future<TopicDto> updateTopic(int id, String name, double difficulty) async {
     for (final topics in _topics.values) {
       final index = topics.indexWhere((topic) => topic.id == id);
       if (index != -1) {
@@ -434,8 +435,12 @@ class FakeStudyRepository implements StudyRepository {
       while (day.weekday > 5) {
         day = DateTime(day.year, day.month, day.day + 1);
       }
-      final start = DateTime(day.year, day.month, day.day, settings.startHour)
-          .add(Duration(minutes: slot * settings.sessionMinutes));
+      final start = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        settings.startHour,
+      ).add(Duration(minutes: slot * settings.sessionMinutes));
       sessions.add(
         PlannedSessionDto(
           topicId: topic.id,
@@ -466,10 +471,7 @@ class FakeStudyRepository implements StudyRepository {
   }
 
   @override
-  Future<int> savePlan(
-    int subjectId,
-    List<PlannedSessionDto> sessions,
-  ) async {
+  Future<int> savePlan(int subjectId, List<PlannedSessionDto> sessions) async {
     _sessions.removeWhere(
       (_, session) =>
           session.subjectId == subjectId && session.state != 'completada',
@@ -530,6 +532,11 @@ class FakeStudyRepository implements StudyRepository {
       state: state,
       originalStart: current.originalStart,
     );
+    if (state == 'completada' && _xpSessions.add(id)) {
+      final config = xpConfigFor(current.subjectId);
+      _addXp(_profileForSubject(current.subjectId), config.session);
+      _recordStreak(_profileForSubject(current.subjectId));
+    }
   }
 
   @override
@@ -668,9 +675,9 @@ class FakeStudyRepository implements StudyRepository {
         ? 6
         : (current.intervalDays * current.easeFactor).round().clamp(1, 3650);
     final delta = quality.toDouble();
-    final ease = (current.easeFactor +
-            (0.1 - (5 - delta) * (0.08 + (5 - delta) * 0.02)))
-        .clamp(1.3, 3.0);
+    final ease =
+        (current.easeFactor + (0.1 - (5 - delta) * (0.08 + (5 - delta) * 0.02)))
+            .clamp(1.3, 3.0);
     final now = DateTime.now();
     final updated = FlashcardDto(
       id: current.id,
@@ -690,6 +697,11 @@ class FakeStudyRepository implements StudyRepository {
     _reviewQualities.putIfAbsent(current.topicId, () => <int>[]).add(quality);
     final mastery = _masteryFor(current.topicId);
     _updateTopicMastery(current.topicId, mastery);
+    final profileId = _profileForSubject(current.subjectId);
+    _recordStreak(profileId);
+    if (mastery >= 0.8 && _xpMasteredTopics.add(current.topicId)) {
+      _addXp(profileId, xpConfigFor(current.subjectId).masterTopic);
+    }
     return ReviewResultDto(
       flashcard: updated,
       quality: quality,
@@ -743,6 +755,168 @@ class FakeStudyRepository implements StudyRepository {
           reviews: _reviewQualities[topic.id]?.length ?? 0,
         ),
     ];
+  }
+
+  static const XpConfigDto _defaultXpConfig = XpConfigDto(
+    readSection: 10,
+    task: 20,
+    quizPassed: 30,
+    session: 15,
+    assessment: 50,
+    streak7D: 100,
+    masterTopic: 150,
+  );
+
+  XpConfigDto xpConfigFor(int subjectId) =>
+      _xpConfigs[subjectId] ?? _defaultXpConfig;
+
+  int xpTotalForProfile(int profileId) => _xpTotals[profileId] ?? 0;
+
+  void seedGamification(
+    int profileId, {
+    int xp = 0,
+    int currentStreak = 0,
+    int bestStreak = 0,
+  }) {
+    _xpTotals[profileId] = xp;
+    _currentStreaks[profileId] = currentStreak;
+    _bestStreaks[profileId] = bestStreak;
+    if (currentStreak > 0) {
+      _lastStreakDates[profileId] = _dateOnly(DateTime.now());
+    }
+  }
+
+  @override
+  Future<XpConfigDto> getXpConfig(int subjectId) async =>
+      xpConfigFor(subjectId);
+
+  @override
+  Future<XpConfigDto> saveXpConfig(int subjectId, XpConfigDto config) async {
+    _xpConfigs[subjectId] = config;
+    return config;
+  }
+
+  @override
+  Future<GamificationSummaryDto> getGamificationSummary(int profileId) async {
+    final total = xpTotalForProfile(profileId);
+    var level = 1;
+    var remaining = total;
+    var needed = 100;
+    while (remaining >= needed) {
+      remaining -= needed;
+      level++;
+      needed += 100;
+    }
+
+    final today = _dateOnly(DateTime.now());
+    final lastDate = _lastStreakDates[profileId];
+    final current = lastDate == today ? (_currentStreaks[profileId] ?? 0) : 0;
+    final best = _bestStreaks[profileId] ?? 0;
+    final reviews = _reviewQualities.values.fold<int>(
+      0,
+      (sum, qualities) => sum + qualities.length,
+    );
+    final subjects = _subjects[profileId] ?? const <SubjectDto>[];
+    final subjectIds = subjects.map((subject) => subject.id).toSet();
+    final completedSessions = _sessions.values
+        .where(
+          (session) =>
+              session.state == 'completada' &&
+              subjectIds.contains(session.subjectId),
+        )
+        .length;
+    final masteredTopics = [
+      for (final entry in _topics.entries)
+        if (subjectIds.contains(entry.key))
+          ...entry.value.where((topic) => _masteryFor(topic.id) >= 0.8),
+    ].length;
+
+    return GamificationSummaryDto(
+      profileId: profileId,
+      totalXp: total,
+      level: level,
+      xpInLevel: remaining,
+      xpForNextLevel: needed,
+      currentStreak: current,
+      bestStreak: best,
+      freezeEnabled: false,
+      badges: [
+        BadgeDto(
+          code: 'primer_repaso',
+          title: 'Primer repaso',
+          description: 'Repasa tu primera tarjeta.',
+          earned: reviews > 0,
+        ),
+        BadgeDto(
+          code: 'primera_sesion',
+          title: 'Primera sesión',
+          description: 'Completa una sesión de estudio.',
+          earned: completedSessions > 0,
+        ),
+        BadgeDto(
+          code: 'racha_7',
+          title: 'Racha de 7 días',
+          description: 'Estudia durante 7 días seguidos.',
+          earned: best >= 7,
+        ),
+        BadgeDto(
+          code: 'nivel_5',
+          title: 'Nivel 5',
+          description: 'Alcanza el nivel 5.',
+          earned: level >= 5,
+        ),
+        BadgeDto(
+          code: 'tema_dominado',
+          title: 'Tema dominado',
+          description: 'Domina un tema por completo.',
+          earned: masteredTopics > 0,
+        ),
+        BadgeDto(
+          code: 'diez_repasos',
+          title: 'Diez repasos',
+          description: 'Acumula diez repasos.',
+          earned: reviews >= 10,
+        ),
+      ],
+    );
+  }
+
+  int _profileForSubject(int subjectId) {
+    for (final entry in _subjects.entries) {
+      if (entry.value.any((subject) => subject.id == subjectId)) {
+        return entry.key;
+      }
+    }
+    throw StateError('materia $subjectId no encontrada');
+  }
+
+  void _addXp(int profileId, int amount) {
+    _xpTotals[profileId] = xpTotalForProfile(profileId) + amount;
+  }
+
+  void _recordStreak(int profileId) {
+    final today = _dateOnly(DateTime.now());
+    final last = _lastStreakDates[profileId];
+    if (last == today) {
+      return;
+    }
+    final yesterday = _dateOnly(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final current = last == yesterday
+        ? (_currentStreaks[profileId] ?? 0) + 1
+        : 1;
+    _currentStreaks[profileId] = current;
+    _lastStreakDates[profileId] = today;
+    if (current > (_bestStreaks[profileId] ?? 0)) {
+      _bestStreaks[profileId] = current;
+    }
+    if (current % 7 == 0) {
+      final subjects = _subjects[profileId] ?? const <SubjectDto>[];
+      if (subjects.isNotEmpty) {
+        _addXp(profileId, xpConfigFor(subjects.first.id).streak7D);
+      }
+    }
   }
 }
 

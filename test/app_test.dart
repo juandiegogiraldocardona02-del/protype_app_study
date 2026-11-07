@@ -114,12 +114,7 @@ void main() {
   ) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');
-    repository.addDocument(
-      1,
-      name: 'Tema 1.pdf',
-      kind: 'pdf',
-      textChars: 3200,
-    );
+    repository.addDocument(1, name: 'Tema 1.pdf', kind: 'pdf', textChars: 3200);
     repository.addDocument(1, name: 'Apuntes.txt', kind: 'txt');
 
     await _pumpApp(tester, repository);
@@ -172,9 +167,7 @@ void main() {
     expect(await repository.listDocuments(1), isEmpty);
   });
 
-  testWidgets('añade un tema desde la agenda de la asignatura', (
-    tester,
-  ) async {
+  testWidgets('añade un tema desde la agenda de la asignatura', (tester) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');
 
@@ -217,9 +210,7 @@ void main() {
     final start = DateTime.now()
         .subtract(const Duration(days: 1))
         .toIso8601String();
-    final end = DateTime.now()
-        .add(const Duration(days: 60))
-        .toIso8601String();
+    final end = DateTime.now().add(const Duration(days: 60)).toIso8601String();
     final sessions = await repository.listSessions(1, 1, start, end);
     expect(sessions, hasLength(1));
   });
@@ -246,9 +237,7 @@ void main() {
     await tester.tap(find.text('La célula'));
     await tester.pumpAndSettle();
 
-    final end = now
-        .add(const Duration(days: 1))
-        .toIso8601String();
+    final end = now.add(const Duration(days: 1)).toIso8601String();
     final sessions = await repository.listSessions(
       1,
       1,
@@ -274,10 +263,7 @@ void main() {
     expect(find.text('Dominio por tema'), findsOneWidget);
     await tester.tap(find.text('Añadir tarjeta'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField).at(0),
-      '¿Qué es la célula?',
-    );
+    await tester.enterText(find.byType(TextField).at(0), '¿Qué es la célula?');
     await tester.enterText(
       find.byType(TextField).at(1),
       'La unidad básica de la vida.',
@@ -314,10 +300,7 @@ void main() {
     expect(find.text('¿Qué es la mitocondria?'), findsWidgets);
     await tester.tap(find.text('Mostrar respuesta'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('La central energética de la célula.'),
-      findsOneWidget,
-    );
+    expect(find.text('La central energética de la célula.'), findsOneWidget);
     await tester.tap(find.text('Bien'));
     await tester.pumpAndSettle();
 
@@ -348,5 +331,61 @@ void main() {
 
     expect(find.textContaining('Se guardaron 1 tarjetas'), findsOneWidget);
     expect(await repository.listFlashcards(1), hasLength(1));
+  });
+
+  testWidgets('el inicio muestra nivel y racha', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.seedGamification(1, xp: 250, currentStreak: 3, bestStreak: 5);
+
+    await _pumpApp(tester, repository);
+
+    expect(find.text('Nivel 2 · 250 XP'), findsOneWidget);
+    expect(find.text('Racha 3 d'), findsOneWidget);
+    expect(find.text('Mejor 5 d'), findsOneWidget);
+  });
+
+  testWidgets('las estadísticas resumen XP, nivel e insignias', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.seedGamification(1, xp: 100, currentStreak: 7, bestStreak: 7);
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Estadísticas'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Progreso de Ana'), findsOneWidget);
+    expect(find.text('XP total'), findsOneWidget);
+    expect(find.text('Insignias'), findsOneWidget);
+    expect(find.text('Racha de 7 días'), findsOneWidget);
+  });
+
+  testWidgets('guarda la configuración de XP de la asignatura', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addTopic(1, name: 'La célula');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Progreso'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Configurar'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Configurar'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '33');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Configuración guardada'), findsOneWidget);
+    expect((await repository.getXpConfig(1)).readSection, 33);
   });
 }

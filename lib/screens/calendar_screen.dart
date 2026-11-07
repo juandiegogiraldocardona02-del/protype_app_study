@@ -104,14 +104,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         children: [
           SegmentedButton<_CalendarView>(
             segments: const [
-              ButtonSegment(
-                value: _CalendarView.month,
-                label: Text('Mes'),
-              ),
-              ButtonSegment(
-                value: _CalendarView.week,
-                label: Text('Semana'),
-              ),
+              ButtonSegment(value: _CalendarView.month, label: Text('Mes')),
+              ButtonSegment(value: _CalendarView.week, label: Text('Semana')),
               ButtonSegment(value: _CalendarView.day, label: Text('Día')),
             ],
             selected: {_view},
@@ -130,7 +124,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             icon: const Icon(Icons.chevron_right),
           ),
           TextButton(
-            onPressed: () => setState(() => _anchor = _dateOnly(DateTime.now())),
+            onPressed: () =>
+                setState(() => _anchor = _dateOnly(DateTime.now())),
             child: const Text('Hoy'),
           ),
           DropdownButton<int?>(
@@ -324,10 +319,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     try {
       await ref
           .read(planActionsProvider)
-          .setSessionState(
-            session.id,
-            completed ? 'pendiente' : 'completada',
-          );
+          .setSessionState(session.id, completed ? 'pendiente' : 'completada');
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -412,7 +404,10 @@ class _Legend extends StatelessWidget {
     return Wrap(
       spacing: 10,
       children: [
-        _LegendDot(label: 'Pendiente', color: _stateColor(context, 'pendiente')),
+        _LegendDot(
+          label: 'Pendiente',
+          color: _stateColor(context, 'pendiente'),
+        ),
         _LegendDot(label: 'Hecha', color: _stateColor(context, 'completada')),
         _LegendDot(
           label: 'Replanificada',

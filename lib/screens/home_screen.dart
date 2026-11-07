@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import '../state/repository.dart';
 import '../widgets/empty_state.dart';
 import 'subject_space_screen.dart';
 
@@ -15,6 +16,7 @@ class HomeScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final subjectsAsync = ref.watch(subjectsProvider(profile.id));
+    final gamification = ref.watch(gamificationProvider(profile.id));
 
     return subjectsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -38,6 +40,12 @@ class HomeScreen extends ConsumerWidget {
             _SummaryRow(
               subjectCount: subjects.length,
               profileName: profile.name,
+            ),
+            const SizedBox(height: 16),
+            gamification.when(
+              loading: () => const SizedBox.shrink(),
+              error: (error, _) => const SizedBox.shrink(),
+              data: (summary) => _GamificationCard(summary: summary),
             ),
             const SizedBox(height: 28),
             if (subjects.isEmpty)
@@ -174,6 +182,62 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
+class _GamificationCard extends StatelessWidget {
+  const _GamificationCard({required this.summary});
+
+  final GamificationSummaryDto summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = summary.xpForNextLevel <= 0
+        ? 0.0
+        : summary.xpInLevel / summary.xpForNextLevel;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(radius: 26, child: Text('${summary.level}')),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nivel ${summary.level} · ${summary.totalXp} XP',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.local_fire_department_outlined,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text('Racha ${summary.currentStreak} d'),
+                      const Spacer(),
+                      Text('Mejor ${summary.bestStreak} d'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ComingSoonCard extends StatelessWidget {
   const _ComingSoonCard();
 
@@ -189,7 +253,7 @@ class _ComingSoonCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Las sesiones de estudio, las rachas y el asistente local se '
+                'El asistente local y las evaluaciones automáticas se '
                 'activarán en las siguientes etapas del plan.',
                 style: theme.textTheme.bodyMedium,
               ),

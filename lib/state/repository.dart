@@ -3,9 +3,11 @@ import '../bridge/bridge.dart';
 export '../bridge/bridge.dart'
     show
         AvailabilityDayDto,
+        BadgeDto,
         DocumentDto,
         FlashcardDto,
         FlashcardProposalDto,
+        GamificationSummaryDto,
         ImportOutcomeDto,
         MasteryOverviewDto,
         PlanProposalDto,
@@ -16,7 +18,8 @@ export '../bridge/bridge.dart'
         ReviewResultDto,
         SessionDto,
         SubjectDto,
-        TopicDto;
+        TopicDto,
+        XpConfigDto;
 
 abstract class StudyRepository {
   Future<List<ProfileDto>> listProfiles();
@@ -86,11 +89,7 @@ abstract class StudyRepository {
     String answer,
   );
 
-  Future<FlashcardDto> updateFlashcard(
-    int id,
-    String question,
-    String answer,
-  );
+  Future<FlashcardDto> updateFlashcard(int id, String question, String answer);
 
   Future<void> deleteFlashcard(int id);
 
@@ -106,4 +105,10 @@ abstract class StudyRepository {
   );
 
   Future<List<MasteryOverviewDto>> listMastery(int subjectId);
+
+  Future<XpConfigDto> getXpConfig(int subjectId);
+
+  Future<XpConfigDto> saveXpConfig(int subjectId, XpConfigDto config);
+
+  Future<GamificationSummaryDto> getGamificationSummary(int profileId);
 }

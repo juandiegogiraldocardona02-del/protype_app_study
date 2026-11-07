@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -196,6 +196,23 @@ Future<List<MasteryOverviewDto>> listMastery({
   required PlatformInt64 subjectId,
 }) => RustLib.instance.api.crateBridgeListMastery(subjectId: subjectId);
 
+Future<XpConfigDto> getXpConfig({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeGetXpConfig(subjectId: subjectId);
+
+Future<XpConfigDto> saveXpConfig({
+  required PlatformInt64 subjectId,
+  required XpConfigDto config,
+}) => RustLib.instance.api.crateBridgeSaveXpConfig(
+  subjectId: subjectId,
+  config: config,
+);
+
+Future<GamificationSummaryDto> getGamificationSummary({
+  required PlatformInt64 profileId,
+}) => RustLib.instance.api.crateBridgeGetGamificationSummary(
+  profileId: profileId,
+);
+
 class AvailabilityDayDto {
   final PlatformInt64 weekday;
   final PlatformInt64 minutes;
@@ -212,6 +229,34 @@ class AvailabilityDayDto {
           runtimeType == other.runtimeType &&
           weekday == other.weekday &&
           minutes == other.minutes;
+}
+
+class BadgeDto {
+  final String code;
+  final String title;
+  final String description;
+  final bool earned;
+
+  const BadgeDto({
+    required this.code,
+    required this.title,
+    required this.description,
+    required this.earned,
+  });
+
+  @override
+  int get hashCode =>
+      code.hashCode ^ title.hashCode ^ description.hashCode ^ earned.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BadgeDto &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          title == other.title &&
+          description == other.description &&
+          earned == other.earned;
 }
 
 class DocumentDto {
@@ -365,6 +410,57 @@ class FlashcardProposalDto {
           question == other.question &&
           answer == other.answer &&
           source == other.source;
+}
+
+class GamificationSummaryDto {
+  final PlatformInt64 profileId;
+  final PlatformInt64 totalXp;
+  final PlatformInt64 level;
+  final PlatformInt64 xpInLevel;
+  final PlatformInt64 xpForNextLevel;
+  final PlatformInt64 currentStreak;
+  final PlatformInt64 bestStreak;
+  final bool freezeEnabled;
+  final List<BadgeDto> badges;
+
+  const GamificationSummaryDto({
+    required this.profileId,
+    required this.totalXp,
+    required this.level,
+    required this.xpInLevel,
+    required this.xpForNextLevel,
+    required this.currentStreak,
+    required this.bestStreak,
+    required this.freezeEnabled,
+    required this.badges,
+  });
+
+  @override
+  int get hashCode =>
+      profileId.hashCode ^
+      totalXp.hashCode ^
+      level.hashCode ^
+      xpInLevel.hashCode ^
+      xpForNextLevel.hashCode ^
+      currentStreak.hashCode ^
+      bestStreak.hashCode ^
+      freezeEnabled.hashCode ^
+      badges.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GamificationSummaryDto &&
+          runtimeType == other.runtimeType &&
+          profileId == other.profileId &&
+          totalXp == other.totalXp &&
+          level == other.level &&
+          xpInLevel == other.xpInLevel &&
+          xpForNextLevel == other.xpForNextLevel &&
+          currentStreak == other.currentStreak &&
+          bestStreak == other.bestStreak &&
+          freezeEnabled == other.freezeEnabled &&
+          badges == other.badges;
 }
 
 class ImportOutcomeDto {
@@ -734,4 +830,47 @@ class TopicDto {
           name == other.name &&
           difficulty == other.difficulty &&
           mastery == other.mastery;
+}
+
+class XpConfigDto {
+  final PlatformInt64 readSection;
+  final PlatformInt64 task;
+  final PlatformInt64 quizPassed;
+  final PlatformInt64 session;
+  final PlatformInt64 assessment;
+  final PlatformInt64 streak7D;
+  final PlatformInt64 masterTopic;
+
+  const XpConfigDto({
+    required this.readSection,
+    required this.task,
+    required this.quizPassed,
+    required this.session,
+    required this.assessment,
+    required this.streak7D,
+    required this.masterTopic,
+  });
+
+  @override
+  int get hashCode =>
+      readSection.hashCode ^
+      task.hashCode ^
+      quizPassed.hashCode ^
+      session.hashCode ^
+      assessment.hashCode ^
+      streak7D.hashCode ^
+      masterTopic.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is XpConfigDto &&
+          runtimeType == other.runtimeType &&
+          readSection == other.readSection &&
+          task == other.task &&
+          quizPassed == other.quizPassed &&
+          session == other.session &&
+          assessment == other.assessment &&
+          streak7D == other.streak7D &&
+          masterTopic == other.masterTopic;
 }

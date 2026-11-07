@@ -7,7 +7,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
 use crate::domain::{
     AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview, PlanSettings,
-    PlannedSession, Profile, ReviewResult, Session, Subject, Topic,
+    PlannedSession, Profile, ReviewResult, Session, Streak, Subject, Topic, XpConfig,
 };
 use crate::error::{CoreError, CoreResult};
 
@@ -19,9 +19,12 @@ const MIGRATIONS: &[(i64, &str)] = &[
     ),
     (3, include_str!("../../migrations/0003_planning.sql")),
     (4, include_str!("../../migrations/0004_learning.sql")),
+    (5, include_str!("../../migrations/0005_gamification.sql")),
 ];
 
 const MAX_NAME_LEN: usize = 120;
+
+type StreakRow = (i64, i64, Option<String>, i64, Option<String>);
 
 pub struct NewDocument {
     pub subject_id: i64,
@@ -663,6 +666,25 @@ impl Database {
                 "estado de sesión no válido; usa pendiente o completada".into(),
             ));
         }
+        let info: Option<(i64, Option<i64>, String)> = self
+            .conn
+            .query_row(
+                "SELECT subject_id, topic_id, estado FROM sessions WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()?;
+        let (subject_id, topic_id, previous) =
+            info.ok_or_else(|| CoreError::NotFound(format!("sesión {id}")))?;
+        let profile_id: i64 = self.conn.query_row(
+            "SELECT profile_id FROM subjects WHERE id = ?1",
+            params![subject_id],
+            |row| row.get(0),
+        )?;
+        let config = self.get_xp_config(subject_id)?;
+        let now = Local::now();
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+
         let tx = self.conn.transaction()?;
         let changed = tx.execute(
             "UPDATE sessions SET estado = ?2 WHERE id = ?1",
@@ -671,13 +693,24 @@ impl Database {
         if changed == 0 {
             return Err(CoreError::NotFound(format!("sesión {id}")));
         }
+        if state == "completada" && previous != "completada" {
+            insert_xp_once(
+                &tx,
+                profile_id,
+                &format!("sesion:{id}"),
+                config.session,
+                &timestamp,
+            )?;
+            record_streak_tx(
+                &tx,
+                profile_id,
+                now.date_naive(),
+                config.streak_7d,
+                &timestamp,
+            )?;
+        }
         log_change(&tx, "session", id, state)?;
         tx.commit()?;
-        let topic_id: Option<i64> = self.conn.query_row(
-            "SELECT topic_id FROM sessions WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        )?;
         if let Some(topic_id) = topic_id {
             self.refresh_topic_mastery(topic_id)?;
         }
@@ -828,6 +861,13 @@ impl Database {
         let next_text = (now + Duration::days(schedule.interval_days))
             .format("%Y-%m-%dT%H:%M:%S")
             .to_string();
+        let profile_id: i64 = self.conn.query_row(
+            "SELECT profile_id FROM subjects WHERE id = ?1",
+            params![card.subject_id],
+            |row| row.get(0),
+        )?;
+        let config = self.get_xp_config(card.subject_id)?;
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
 
         let tx = self.conn.transaction()?;
         tx.execute(
@@ -859,6 +899,7 @@ impl Database {
             ],
         )?;
         log_change(&tx, "flashcard", id, "repasar")?;
+        record_streak_tx(&tx, profile_id, now.date(), config.streak_7d, &timestamp)?;
         tx.commit()?;
 
         let mastery = self.refresh_topic_mastery(card.topic_id)?;
@@ -994,6 +1035,14 @@ impl Database {
         let review_component = review_average.unwrap_or(0.0) / 5.0;
         let time_component = (minutes as f64 / 120.0).clamp(0.0, 1.0);
         let mastery = (0.6 * review_component + 0.4 * time_component).clamp(0.0, 1.0);
+        let topic = self.get_topic(topic_id)?;
+        let config = self.get_xp_config(topic.subject_id)?;
+        let profile_id: i64 = self.conn.query_row(
+            "SELECT profile_id FROM subjects WHERE id = ?1",
+            params![topic.subject_id],
+            |row| row.get(0),
+        )?;
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
 
         let tx = self.conn.transaction()?;
         let changed = tx.execute(
@@ -1003,9 +1052,142 @@ impl Database {
         if changed == 0 {
             return Err(CoreError::NotFound(format!("tema {topic_id}")));
         }
+        if mastery >= 0.8 {
+            insert_xp_once(
+                &tx,
+                profile_id,
+                &format!("dominar_tema:{topic_id}"),
+                config.master_topic,
+                &timestamp,
+            )?;
+        }
         log_change(&tx, "topic", topic_id, "dominio")?;
         tx.commit()?;
         Ok(mastery)
+    }
+
+    pub fn get_xp_config(&self, subject_id: i64) -> CoreResult<XpConfig> {
+        let raw: String = self
+            .conn
+            .query_row(
+                "SELECT xp_config_json FROM subjects WHERE id = ?1",
+                params![subject_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| CoreError::NotFound(format!("asignatura {subject_id}")))?;
+        Ok(serde_json::from_str(&raw).unwrap_or_default())
+    }
+
+    pub fn save_xp_config(&mut self, subject_id: i64, config: &XpConfig) -> CoreResult<XpConfig> {
+        crate::gamification::validate_config(config)?;
+        self.get_subject(subject_id)?;
+        let json = serde_json::to_string(config).map_err(|error| {
+            CoreError::Unexpected(format!(
+                "no se pudo serializar la configuración de XP: {error}"
+            ))
+        })?;
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE subjects SET xp_config_json = ?2 WHERE id = ?1",
+            params![subject_id, json],
+        )?;
+        log_change(&tx, "subject", subject_id, "configurar_xp")?;
+        tx.commit()?;
+        self.get_xp_config(subject_id)
+    }
+
+    pub fn xp_total(&self, profile_id: i64) -> CoreResult<i64> {
+        self.get_profile(profile_id)?;
+        Ok(self.conn.query_row(
+            "SELECT COALESCE(SUM(xp), 0) FROM xp_log WHERE profile_id = ?1",
+            params![profile_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn streak(&self, profile_id: i64) -> CoreResult<Streak> {
+        self.get_profile(profile_id)?;
+        let stored: Option<StreakRow> = self
+            .conn
+            .query_row(
+                "SELECT current_days, best_days, last_activity_date,
+                        freeze_enabled, freeze_used_on
+                 FROM streaks WHERE profile_id = ?1",
+                params![profile_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let (current_days, best_days, last, freeze, freeze_used_on) =
+            stored.unwrap_or((0, 0, None, 1, None));
+        Ok(Streak {
+            profile_id,
+            current_days,
+            best_days,
+            last_activity_date: last,
+            freeze_enabled: freeze != 0,
+            freeze_used_on,
+        })
+    }
+
+    pub fn review_count(&self, profile_id: i64) -> CoreResult<i64> {
+        self.get_profile(profile_id)?;
+        Ok(self.conn.query_row(
+            "SELECT COUNT(*)
+             FROM review_log r
+             JOIN flashcards f ON f.id = r.flashcard_id
+             JOIN topics t ON t.id = f.topic_id
+             JOIN subjects s ON s.id = t.subject_id
+             WHERE s.profile_id = ?1",
+            params![profile_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn completed_session_count(&self, profile_id: i64) -> CoreResult<i64> {
+        self.get_profile(profile_id)?;
+        Ok(self.conn.query_row(
+            "SELECT COUNT(*)
+             FROM sessions se
+             JOIN subjects s ON s.id = se.subject_id
+             WHERE s.profile_id = ?1 AND se.estado = 'completada'",
+            params![profile_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn mastered_topic_count(&self, profile_id: i64) -> CoreResult<i64> {
+        self.get_profile(profile_id)?;
+        Ok(self.conn.query_row(
+            "SELECT COUNT(*)
+             FROM topics t
+             JOIN subjects s ON s.id = t.subject_id
+             WHERE s.profile_id = ?1 AND t.dominio >= 0.8",
+            params![profile_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn record_activity_at(
+        &mut self,
+        profile_id: i64,
+        today: NaiveDate,
+        streak_xp: i64,
+    ) -> CoreResult<Streak> {
+        self.get_profile(profile_id)?;
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+        let tx = self.conn.transaction()?;
+        record_streak_tx(&tx, profile_id, today, streak_xp, &timestamp)?;
+        tx.commit()?;
+        self.streak(profile_id)
     }
 }
 
@@ -1150,6 +1332,118 @@ fn log_change(
          VALUES (?1, ?2, ?3, ?4)",
         params![entity, entity_id, action, timestamp],
     )?;
+    Ok(())
+}
+
+fn parse_activity_date(value: &str) -> Option<NaiveDate> {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d").ok()
+}
+
+fn insert_xp_log(
+    tx: &rusqlite::Transaction<'_>,
+    profile_id: i64,
+    activity: &str,
+    xp: i64,
+    timestamp: &str,
+) -> CoreResult<()> {
+    if xp <= 0 {
+        return Ok(());
+    }
+    tx.execute(
+        "INSERT INTO xp_log (profile_id, actividad, xp, timestamp)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![profile_id, activity, xp, timestamp],
+    )?;
+    log_change(tx, "profile", profile_id, "xp")?;
+    Ok(())
+}
+
+fn insert_xp_once(
+    tx: &rusqlite::Transaction<'_>,
+    profile_id: i64,
+    activity: &str,
+    xp: i64,
+    timestamp: &str,
+) -> CoreResult<()> {
+    if xp <= 0 {
+        return Ok(());
+    }
+    let count: i64 = tx.query_row(
+        "SELECT COUNT(*) FROM xp_log WHERE profile_id = ?1 AND actividad = ?2",
+        params![profile_id, activity],
+        |row| row.get(0),
+    )?;
+    if count == 0 {
+        insert_xp_log(tx, profile_id, activity, xp, timestamp)?;
+    }
+    Ok(())
+}
+
+fn record_streak_tx(
+    tx: &rusqlite::Transaction<'_>,
+    profile_id: i64,
+    today: NaiveDate,
+    streak_xp: i64,
+    timestamp: &str,
+) -> CoreResult<()> {
+    let stored: Option<StreakRow> = tx
+        .query_row(
+            "SELECT current_days, best_days, last_activity_date,
+                    freeze_enabled, freeze_used_on
+             FROM streaks WHERE profile_id = ?1",
+            params![profile_id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .optional()?;
+    let (current_days, best_days, last, freeze, freeze_used_on) =
+        stored.unwrap_or((0, 0, None, 1, None));
+    let last_date = last.as_deref().and_then(parse_activity_date);
+    let freeze_date = freeze_used_on.as_deref().and_then(parse_activity_date);
+    let advance = crate::gamification::advance_streak(
+        current_days,
+        best_days,
+        last_date,
+        freeze != 0,
+        freeze_date,
+        today,
+    );
+    tx.execute(
+        "INSERT INTO streaks
+            (profile_id, current_days, best_days, last_activity_date,
+             freeze_enabled, freeze_used_on)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+         ON CONFLICT(profile_id) DO UPDATE SET
+            current_days = excluded.current_days,
+            best_days = excluded.best_days,
+            last_activity_date = excluded.last_activity_date,
+            freeze_used_on = excluded.freeze_used_on",
+        params![
+            profile_id,
+            advance.current_days,
+            advance.best_days,
+            advance.last_activity_date.to_string(),
+            freeze,
+            advance.freeze_used_on.map(|date| date.to_string()),
+        ],
+    )?;
+    if let Some(milestone) = advance.milestone {
+        insert_xp_log(
+            tx,
+            profile_id,
+            &format!("racha_7d:{milestone}"),
+            streak_xp,
+            timestamp,
+        )?;
+    }
+    log_change(tx, "profile", profile_id, "racha")?;
     Ok(())
 }
 

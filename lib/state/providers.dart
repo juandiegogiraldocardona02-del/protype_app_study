@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'repository.dart';
 
@@ -100,12 +100,7 @@ final sessionsProvider = FutureProvider.family<List<SessionDto>, SessionQuery>((
 ) {
   return ref
       .watch(repositoryProvider)
-      .listSessions(
-        query.profileId,
-        query.subjectId,
-        query.start,
-        query.end,
-      );
+      .listSessions(query.profileId, query.subjectId, query.start, query.end);
 });
 
 class NavigationIndex extends Notifier<int> {
@@ -210,11 +205,7 @@ class TopicActions {
 
   StudyRepository get _repo => _ref.read(repositoryProvider);
 
-  Future<TopicDto> create(
-    int subjectId,
-    String name,
-    double difficulty,
-  ) async {
+  Future<TopicDto> create(int subjectId, String name, double difficulty) async {
     final created = await _repo.createTopic(subjectId, name, difficulty);
     _ref.invalidate(topicsProvider(subjectId));
     return created;
@@ -236,9 +227,7 @@ class TopicActions {
   }
 }
 
-final topicActionsProvider = Provider<TopicActions>(
-  (ref) => TopicActions(ref),
-);
+final topicActionsProvider = Provider<TopicActions>((ref) => TopicActions(ref));
 
 class PlanActions {
   PlanActions(this._ref);
@@ -265,7 +254,8 @@ class PlanActions {
     return saved;
   }
 
-  Future<PlanProposalDto> preview(int subjectId) => _repo.previewPlan(subjectId);
+  Future<PlanProposalDto> preview(int subjectId) =>
+      _repo.previewPlan(subjectId);
 
   Future<int> save(int subjectId, List<PlannedSessionDto> sessions) async {
     final count = await _repo.savePlan(subjectId, sessions);
@@ -276,6 +266,9 @@ class PlanActions {
   Future<void> setSessionState(int id, String state) async {
     await _repo.setSessionState(id, state);
     _ref.invalidate(sessionsProvider);
+    _ref.invalidate(masteryProvider);
+    _ref.invalidate(topicsProvider);
+    _ref.invalidate(gamificationProvider);
   }
 
   Future<ReplanResultDto> replan(int subjectId) async {
@@ -358,10 +351,7 @@ class FlashcardActions {
   Future<List<FlashcardProposalDto>> preview(int subjectId) =>
       _repo.previewFlashcards(subjectId);
 
-  Future<int> save(
-    int subjectId,
-    List<FlashcardProposalDto> proposals,
-  ) async {
+  Future<int> save(int subjectId, List<FlashcardProposalDto> proposals) async {
     final count = await _repo.saveFlashcards(subjectId, proposals);
     _invalidate(subjectId);
     return count;
@@ -370,10 +360,42 @@ class FlashcardActions {
   Future<ReviewResultDto> review(int subjectId, int id, int quality) async {
     final result = await _repo.reviewFlashcard(id, quality);
     _invalidate(subjectId);
+    _ref.invalidate(gamificationProvider);
     return result;
   }
 }
 
 final flashcardActionsProvider = Provider<FlashcardActions>(
   (ref) => FlashcardActions(ref),
+);
+
+final gamificationProvider = FutureProvider.family<GamificationSummaryDto, int>(
+  (ref, profileId) {
+    return ref.watch(repositoryProvider).getGamificationSummary(profileId);
+  },
+);
+
+final xpConfigProvider = FutureProvider.family<XpConfigDto, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).getXpConfig(subjectId);
+});
+
+class GamificationActions {
+  GamificationActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<XpConfigDto> saveXpConfig(int subjectId, XpConfigDto config) async {
+    final saved = await _repo.saveXpConfig(subjectId, config);
+    _ref.invalidate(xpConfigProvider(subjectId));
+    return saved;
+  }
+}
+
+final gamificationActionsProvider = Provider<GamificationActions>(
+  (ref) => GamificationActions(ref),
 );

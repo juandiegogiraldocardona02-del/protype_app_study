@@ -15,6 +15,7 @@ class SubjectProgressPanel extends ConsumerWidget {
     final mastery = ref.watch(masteryProvider(subject.id));
     final due = ref.watch(dueFlashcardsProvider(subject.id));
     final cards = ref.watch(flashcardsProvider(subject.id));
+    final xp = ref.watch(xpConfigProvider(subject.id));
     final topics = ref.watch(topicsProvider(subject.id)).asData?.value;
     final dueItems = due.asData?.value ?? const <FlashcardDto>[];
     final allCards = cards.asData?.value ?? const <FlashcardDto>[];
@@ -22,7 +23,10 @@ class SubjectProgressPanel extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Dominio por tema', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Dominio por tema',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         mastery.when(
           loading: () => const Padding(
@@ -156,7 +160,8 @@ class SubjectProgressPanel extends ConsumerWidget {
             padding: EdgeInsets.all(24),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, _) => Text('No se pudieron cargar las tarjetas: $error'),
+          error: (error, _) =>
+              Text('No se pudieron cargar las tarjetas: $error'),
           data: (items) {
             if (items.isEmpty) {
               return const Card(
@@ -206,8 +211,75 @@ class SubjectProgressPanel extends ConsumerWidget {
             );
           },
         ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Text(
+              'XP por actividad',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: xp.asData?.value == null
+                  ? null
+                  : () => _editXp(context, ref, xp.asData!.value),
+              icon: const Icon(Icons.tune_outlined),
+              label: const Text('Configurar'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        xp.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) =>
+              Text('No se pudo cargar la configuración: $error'),
+          data: (config) => Card(
+            child: ListTile(
+              leading: const Icon(Icons.bolt_outlined),
+              title: const Text('Valores actuales'),
+              subtitle: Text(
+                'Sección ${config.readSection} · Tarea ${config.task} · '
+                'Cuestionario ${config.quizPassed} · Sesión ${config.session} · '
+                'Evaluación ${config.assessment} · Racha 7 d '
+                '${config.streak7D} · Tema dominado ${config.masterTopic}',
+              ),
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _editXp(
+    BuildContext context,
+    WidgetRef ref,
+    XpConfigDto current,
+  ) async {
+    final result = await showDialog<XpConfigDto>(
+      context: context,
+      builder: (context) => _XpConfigDialog(initial: current),
+    );
+    if (result == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(gamificationActionsProvider)
+          .saveXpConfig(subject.id, result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Configuración guardada. Solo afecta a actividades futuras.',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        _showError(context, error);
+      }
+    }
   }
 
   Future<void> _addCard(
@@ -268,7 +340,8 @@ class SubjectProgressPanel extends ConsumerWidget {
     final confirmed = await showConfirmDialog(
       context,
       title: 'Eliminar tarjeta',
-      message: '¿Eliminar «${card.question}»? Su historial de repasos también '
+      message:
+          '¿Eliminar «${card.question}»? Su historial de repasos también '
           'se eliminará.',
       confirmLabel: 'Eliminar',
     );
@@ -331,15 +404,156 @@ class SubjectProgressPanel extends ConsumerWidget {
       ),
     );
     if (reviewed != null && reviewed > 0 && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Repasaste $reviewed tarjetas.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Repasaste $reviewed tarjetas.')));
     }
   }
 
   void _showError(BuildContext context, Object error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_describe(error))),
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(_describe(error))));
+  }
+}
+
+class _XpConfigDialog extends StatefulWidget {
+  const _XpConfigDialog({required this.initial});
+
+  final XpConfigDto initial;
+
+  @override
+  State<_XpConfigDialog> createState() => _XpConfigDialogState();
+}
+
+class _XpConfigDialogState extends State<_XpConfigDialog> {
+  late final TextEditingController _readSection = TextEditingController(
+    text: '${widget.initial.readSection}',
+  );
+  late final TextEditingController _task = TextEditingController(
+    text: '${widget.initial.task}',
+  );
+  late final TextEditingController _quizPassed = TextEditingController(
+    text: '${widget.initial.quizPassed}',
+  );
+  late final TextEditingController _session = TextEditingController(
+    text: '${widget.initial.session}',
+  );
+  late final TextEditingController _assessment = TextEditingController(
+    text: '${widget.initial.assessment}',
+  );
+  late final TextEditingController _streak7D = TextEditingController(
+    text: '${widget.initial.streak7D}',
+  );
+  late final TextEditingController _masterTopic = TextEditingController(
+    text: '${widget.initial.masterTopic}',
+  );
+  String? _error;
+
+  @override
+  void dispose() {
+    for (final controller in [
+      _readSection,
+      _task,
+      _quizPassed,
+      _session,
+      _assessment,
+      _streak7D,
+      _masterTopic,
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  int? _parse(TextEditingController controller) {
+    final value = int.tryParse(controller.text.trim());
+    if (value == null || value < 0 || value > 10000) {
+      return null;
+    }
+    return value;
+  }
+
+  void _save() {
+    final values = <int?>[
+      _parse(_readSection),
+      _parse(_task),
+      _parse(_quizPassed),
+      _parse(_session),
+      _parse(_assessment),
+      _parse(_streak7D),
+      _parse(_masterTopic),
+    ];
+    if (values.contains(null)) {
+      setState(() {
+        _error = 'Usa números enteros entre 0 y 10000.';
+      });
+      return;
+    }
+    Navigator.of(context).pop(
+      XpConfigDto(
+        readSection: values[0]!,
+        task: values[1]!,
+        quizPassed: values[2]!,
+        session: values[3]!,
+        assessment: values[4]!,
+        streak7D: values[5]!,
+        masterTopic: values[6]!,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('XP por actividad'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _field('Leer sección', _readSection),
+              _field('Completar tarea', _task),
+              _field('Cuestionario aprobado', _quizPassed),
+              _field('Sesión completada', _session),
+              _field('Evaluación', _assessment),
+              _field('Racha de 7 días', _streak7D),
+              _field('Dominar un tema', _masterTopic),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Guardar')),
+      ],
+    );
+  }
+
+  Widget _field(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
     );
   }
 }
@@ -438,7 +652,9 @@ class _ProposalDialogState extends State<_ProposalDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${chosen.length} de ${widget.proposals.length} seleccionadas'),
+            Text(
+              '${chosen.length} de ${widget.proposals.length} seleccionadas',
+            ),
             const SizedBox(height: 4),
             const Text(
               'Revisa el contenido y descarta las tarjetas que no te sirvan.',
@@ -453,9 +669,8 @@ class _ProposalDialogState extends State<_ProposalDialog> {
                   return CheckboxListTile(
                     dense: true,
                     value: _included[index],
-                    onChanged: (value) => setState(
-                      () => _included[index] = value ?? false,
-                    ),
+                    onChanged: (value) =>
+                        setState(() => _included[index] = value ?? false),
                     title: Text(proposal.question),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,14 +747,19 @@ class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               const SizedBox(height: 8),
-              Text(card.question, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                card.question,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
               if (_revealed)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(card.answer),
@@ -621,9 +841,8 @@ class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
         return;
       }
       setState(() => _busy = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_describe(error))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_describe(error))));
     }
   }
 }

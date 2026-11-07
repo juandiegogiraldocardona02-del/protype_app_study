@@ -31,10 +31,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AvailabilityDayDto dco_decode_availability_day_dto(dynamic raw);
 
   @protected
+  BadgeDto dco_decode_badge_dto(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  XpConfigDto dco_decode_box_autoadd_xp_config_dto(dynamic raw);
 
   @protected
   DocumentDto dco_decode_document_dto(dynamic raw);
@@ -49,6 +55,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FlashcardProposalDto dco_decode_flashcard_proposal_dto(dynamic raw);
 
   @protected
+  GamificationSummaryDto dco_decode_gamification_summary_dto(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -56,6 +65,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AvailabilityDayDto> dco_decode_list_availability_day_dto(dynamic raw);
+
+  @protected
+  List<BadgeDto> dco_decode_list_badge_dto(dynamic raw);
 
   @protected
   List<DocumentDto> dco_decode_list_document_dto(dynamic raw);
@@ -132,6 +144,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  XpConfigDto dco_decode_xp_config_dto(dynamic raw);
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
@@ -143,10 +158,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BadgeDto sse_decode_badge_dto(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  XpConfigDto sse_decode_box_autoadd_xp_config_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   DocumentDto sse_decode_document_dto(SseDeserializer deserializer);
@@ -163,6 +186,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GamificationSummaryDto sse_decode_gamification_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
@@ -172,6 +200,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AvailabilityDayDto> sse_decode_list_availability_day_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  List<BadgeDto> sse_decode_list_badge_dto(SseDeserializer deserializer);
 
   @protected
   List<DocumentDto> sse_decode_list_document_dto(SseDeserializer deserializer);
@@ -258,6 +289,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
+  XpConfigDto sse_decode_xp_config_dto(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -276,11 +310,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_badge_dto(BadgeDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_xp_config_dto(
+    XpConfigDto self,
     SseSerializer serializer,
   );
 
@@ -300,6 +343,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gamification_summary_dto(
+    GamificationSummaryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -313,6 +362,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     List<AvailabilityDayDto> self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_list_badge_dto(List<BadgeDto> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_document_dto(
@@ -433,6 +485,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_xp_config_dto(XpConfigDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);

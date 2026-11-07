@@ -162,4 +162,16 @@ class RustStudyRepository implements StudyRepository {
   @override
   Future<List<MasteryOverviewDto>> listMastery(int subjectId) =>
       rust.listMastery(subjectId: subjectId);
+
+  @override
+  Future<XpConfigDto> getXpConfig(int subjectId) =>
+      rust.getXpConfig(subjectId: subjectId);
+
+  @override
+  Future<XpConfigDto> saveXpConfig(int subjectId, XpConfigDto config) =>
+      rust.saveXpConfig(subjectId: subjectId, config: config);
+
+  @override
+  Future<GamificationSummaryDto> getGamificationSummary(int profileId) =>
+      rust.getGamificationSummary(profileId: profileId);
 }

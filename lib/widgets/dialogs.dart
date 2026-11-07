@@ -68,7 +68,8 @@ Future<String?> showNameDialog(
   );
 }
 
-typedef SubjectFormResult = ({String name, String color});Future<SubjectFormResult?> showSubjectDialog(
+typedef SubjectFormResult = ({String name, String color});
+Future<SubjectFormResult?> showSubjectDialog(
   BuildContext context, {
   String initialName = '',
   String initialColor = '#4F46E5',
@@ -254,11 +255,7 @@ Future<TopicFormResult?> showTopicDialog(
   );
 }
 
-typedef FlashcardFormResult = ({
-  int topicId,
-  String question,
-  String answer,
-});
+typedef FlashcardFormResult = ({int topicId, String question, String answer});
 
 Future<FlashcardFormResult?> showFlashcardDialog(
   BuildContext context, {
@@ -273,7 +270,8 @@ Future<FlashcardFormResult?> showFlashcardDialog(
   }
   final questionController = TextEditingController(text: initialQuestion);
   final answerController = TextEditingController(text: initialAnswer);
-  var topicId = initialTopicId != null &&
+  var topicId =
+      initialTopicId != null &&
           topics.any((topic) => topic.id == initialTopicId)
       ? initialTopicId
       : topics.first.id;
@@ -298,11 +296,8 @@ Future<FlashcardFormResult?> showFlashcardDialog(
               });
               return;
             }
-            Navigator.of(context).pop((
-              topicId: topicId,
-              question: question,
-              answer: answer,
-            ));
+            Navigator.of(context)
+                .pop((topicId: topicId, question: question, answer: answer));
           }
 
           return AlertDialog(

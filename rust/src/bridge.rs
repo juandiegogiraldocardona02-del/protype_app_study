@@ -148,6 +148,38 @@ pub struct MasteryOverviewDto {
     pub reviews: i64,
 }
 
+#[derive(Debug, Clone)]
+pub struct XpConfigDto {
+    pub read_section: i64,
+    pub task: i64,
+    pub quiz_passed: i64,
+    pub session: i64,
+    pub assessment: i64,
+    pub streak_7d: i64,
+    pub master_topic: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct BadgeDto {
+    pub code: String,
+    pub title: String,
+    pub description: String,
+    pub earned: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct GamificationSummaryDto {
+    pub profile_id: i64,
+    pub total_xp: i64,
+    pub level: i64,
+    pub xp_in_level: i64,
+    pub xp_for_next_level: i64,
+    pub current_streak: i64,
+    pub best_streak: i64,
+    pub freeze_enabled: bool,
+    pub badges: Vec<BadgeDto>,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -331,6 +363,61 @@ impl From<domain::MasteryOverview> for MasteryOverviewDto {
             mastery: value.mastery,
             due_cards: value.due_cards,
             reviews: value.reviews,
+        }
+    }
+}
+
+impl From<domain::XpConfig> for XpConfigDto {
+    fn from(value: domain::XpConfig) -> Self {
+        Self {
+            read_section: value.read_section,
+            task: value.task,
+            quiz_passed: value.quiz_passed,
+            session: value.session,
+            assessment: value.assessment,
+            streak_7d: value.streak_7d,
+            master_topic: value.master_topic,
+        }
+    }
+}
+
+impl From<XpConfigDto> for domain::XpConfig {
+    fn from(value: XpConfigDto) -> Self {
+        Self {
+            read_section: value.read_section,
+            task: value.task,
+            quiz_passed: value.quiz_passed,
+            session: value.session,
+            assessment: value.assessment,
+            streak_7d: value.streak_7d,
+            master_topic: value.master_topic,
+        }
+    }
+}
+
+impl From<domain::Badge> for BadgeDto {
+    fn from(value: domain::Badge) -> Self {
+        Self {
+            code: value.code,
+            title: value.title,
+            description: value.description,
+            earned: value.earned,
+        }
+    }
+}
+
+impl From<domain::GamificationSummary> for GamificationSummaryDto {
+    fn from(value: domain::GamificationSummary) -> Self {
+        Self {
+            profile_id: value.profile_id,
+            total_xp: value.total_xp,
+            level: value.level,
+            xp_in_level: value.xp_in_level,
+            xp_for_next_level: value.xp_for_next_level,
+            current_streak: value.current_streak,
+            best_streak: value.best_streak,
+            freeze_enabled: value.freeze_enabled,
+            badges: value.badges.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -558,8 +645,24 @@ pub fn save_flashcards(
         db::with_db(|database| crate::learning::save_flashcards(database, subject_id, &proposals))?;
     Ok(count)
 }
-
 pub fn list_mastery(subject_id: i64) -> anyhow::Result<Vec<MasteryOverviewDto>> {
     let overview = db::with_db(|database| crate::learning::mastery_overview(database, subject_id))?;
     Ok(overview.into_iter().map(MasteryOverviewDto::from).collect())
+}
+
+pub fn get_xp_config(subject_id: i64) -> anyhow::Result<XpConfigDto> {
+    let config = db::with_db(|database| crate::gamification::get_xp_config(database, subject_id))?;
+    Ok(config.into())
+}
+
+pub fn save_xp_config(subject_id: i64, config: XpConfigDto) -> anyhow::Result<XpConfigDto> {
+    let config = domain::XpConfig::from(config);
+    let saved =
+        db::with_db(|database| crate::gamification::save_xp_config(database, subject_id, &config))?;
+    Ok(saved.into())
+}
+
+pub fn get_gamification_summary(profile_id: i64) -> anyhow::Result<GamificationSummaryDto> {
+    let summary = db::with_db(|database| crate::gamification::summary(database, profile_id))?;
+    Ok(summary.into())
 }

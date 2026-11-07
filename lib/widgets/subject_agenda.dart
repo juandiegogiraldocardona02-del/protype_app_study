@@ -191,7 +191,9 @@ class SubjectAgendaPanel extends ConsumerWidget {
       return;
     }
     try {
-      await ref.read(planActionsProvider).saveSettings(
+      await ref
+          .read(planActionsProvider)
+          .saveSettings(
             subject.id,
             saved.sessionMinutes,
             saved.startHour,
@@ -237,9 +239,7 @@ class SubjectAgendaPanel extends ConsumerWidget {
 
   Future<void> _replan(BuildContext context, WidgetRef ref) async {
     try {
-      final result = await ref
-          .read(planActionsProvider)
-          .replan(subject.id);
+      final result = await ref.read(planActionsProvider).replan(subject.id);
       if (!context.mounted) {
         return;
       }
@@ -280,9 +280,8 @@ class SubjectAgendaPanel extends ConsumerWidget {
   }
 
   void _showError(BuildContext context, Object error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_describe(error))),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(_describe(error))));
   }
 }
 
@@ -620,9 +619,8 @@ class _PlanPreviewDialogState extends State<_PlanPreviewDialog> {
                   return CheckboxListTile(
                     dense: true,
                     value: _included[index],
-                    onChanged: (value) => setState(
-                      () => _included[index] = value ?? false,
-                    ),
+                    onChanged: (value) =>
+                        setState(() => _included[index] = value ?? false),
                     title: Text(session.topicName),
                     subtitle: Text(
                       '${_formatStart(session.start)} · '

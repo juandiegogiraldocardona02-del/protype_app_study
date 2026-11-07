@@ -148,6 +148,71 @@ pub struct MasteryOverview {
     pub reviews: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct XpConfig {
+    pub read_section: i64,
+    pub task: i64,
+    pub quiz_passed: i64,
+    pub session: i64,
+    pub assessment: i64,
+    pub streak_7d: i64,
+    pub master_topic: i64,
+}
+
+impl Default for XpConfig {
+    fn default() -> Self {
+        Self {
+            read_section: 10,
+            task: 20,
+            quiz_passed: 30,
+            session: 15,
+            assessment: 50,
+            streak_7d: 100,
+            master_topic: 150,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Streak {
+    pub profile_id: i64,
+    pub current_days: i64,
+    pub best_days: i64,
+    pub last_activity_date: Option<String>,
+    pub freeze_enabled: bool,
+    pub freeze_used_on: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelProgress {
+    pub level: i64,
+    pub total_xp: i64,
+    pub xp_in_level: i64,
+    pub xp_for_next_level: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Badge {
+    pub code: String,
+    pub title: String,
+    pub description: String,
+    pub earned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GamificationSummary {
+    pub profile_id: i64,
+    pub total_xp: i64,
+    pub level: i64,
+    pub xp_in_level: i64,
+    pub xp_for_next_level: i64,
+    pub current_streak: i64,
+    pub best_streak: i64,
+    pub freeze_enabled: bool,
+    pub badges: Vec<Badge>,
+}
+
 pub mod defaults {
     pub const SUBJECT_COLOR: &str = "#4F46E5";
     pub const PROFILE_CONFIG: &str = "{}";
