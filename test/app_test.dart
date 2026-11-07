@@ -257,4 +257,96 @@ void main() {
     );
     expect(sessions.single.state, 'completada');
   });
+
+  testWidgets('añade una tarjeta manual desde Progreso', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addTopic(1, name: 'La célula');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Progreso'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dominio por tema'), findsOneWidget);
+    await tester.tap(find.text('Añadir tarjeta'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).at(0),
+      '¿Qué es la célula?',
+    );
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'La unidad básica de la vida.',
+    );
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Qué es la célula?'), findsOneWidget);
+    expect(await repository.listFlashcards(1), hasLength(1));
+  });
+
+  testWidgets('repasa una tarjeta pendiente y actualiza el dominio', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    final topic = repository.addTopic(1, name: 'La célula');
+    repository.addFlashcard(
+      topic.id,
+      question: '¿Qué es la mitocondria?',
+      answer: 'La central energética de la célula.',
+    );
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Progreso'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Repasar (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Qué es la mitocondria?'), findsWidgets);
+    await tester.tap(find.text('Mostrar respuesta'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('La central energética de la célula.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Bien'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Repasaste 1 tarjetas'), findsOneWidget);
+    expect(await repository.listDueFlashcards(1), isEmpty);
+    final mastery = await repository.listMastery(1);
+    expect(mastery.single.mastery, greaterThan(0));
+  });
+
+  testWidgets('genera tarjetas propuestas desde los temas', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addTopic(1, name: 'La célula');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Progreso'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Generar desde documentos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tarjetas propuestas'), findsOneWidget);
+    await tester.tap(find.textContaining('Guardar ('));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Se guardaron 1 tarjetas'), findsOneWidget);
+    expect(await repository.listFlashcards(1), hasLength(1));
+  });
 }

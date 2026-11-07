@@ -1,12 +1,13 @@
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
-use chrono::{Days, Local, NaiveDate, NaiveDateTime, SecondsFormat, Utc};
+use chrono::{Days, Duration, Local, NaiveDate, NaiveDateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
 use crate::domain::{
-    AvailabilityDay, Document, PlanSettings, PlannedSession, Profile, Session, Subject, Topic,
+    AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview, PlanSettings,
+    PlannedSession, Profile, ReviewResult, Session, Subject, Topic,
 };
 use crate::error::{CoreError, CoreResult};
 
@@ -17,6 +18,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         include_str!("../../migrations/0002_documents_nombre.sql"),
     ),
     (3, include_str!("../../migrations/0003_planning.sql")),
+    (4, include_str!("../../migrations/0004_learning.sql")),
 ];
 
 const MAX_NAME_LEN: usize = 120;
@@ -671,6 +673,14 @@ impl Database {
         }
         log_change(&tx, "session", id, state)?;
         tx.commit()?;
+        let topic_id: Option<i64> = self.conn.query_row(
+            "SELECT topic_id FROM sessions WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )?;
+        if let Some(topic_id) = topic_id {
+            self.refresh_topic_mastery(topic_id)?;
+        }
         Ok(())
     }
 
@@ -719,6 +729,284 @@ impl Database {
             .conn
             .query_row("SELECT COUNT(*) FROM change_history", [], |row| row.get(0))?)
     }
+
+    pub fn create_flashcard(
+        &mut self,
+        topic_id: i64,
+        question: &str,
+        answer: &str,
+    ) -> CoreResult<Flashcard> {
+        self.get_topic(topic_id)?;
+        let question = validate_text("la pregunta", question, 1000)?;
+        let answer = validate_text("la respuesta", answer, 4000)?;
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO flashcards (topic_id, pregunta, respuesta, origen)
+             VALUES (?1, ?2, ?3, 'manual')",
+            params![topic_id, question, answer],
+        )?;
+        let id = tx.last_insert_rowid();
+        log_change(&tx, "flashcard", id, "crear")?;
+        tx.commit()?;
+        self.get_flashcard(id)
+    }
+
+    pub fn get_flashcard(&self, id: i64) -> CoreResult<Flashcard> {
+        self.conn
+            .query_row(
+                &format!("{FLASHCARD_SELECT} WHERE f.id = ?1"),
+                params![id],
+                map_flashcard,
+            )
+            .optional()?
+            .ok_or_else(|| CoreError::NotFound(format!("tarjeta {id}")))
+    }
+
+    pub fn list_flashcards(&self, subject_id: i64) -> CoreResult<Vec<Flashcard>> {
+        let mut stmt = self.conn.prepare(&format!(
+            "{FLASHCARD_SELECT} WHERE t.subject_id = ?1 ORDER BY f.id"
+        ))?;
+        let rows = stmt.query_map(params![subject_id], map_flashcard)?;
+        collect_flashcards(rows)
+    }
+
+    pub fn list_due_flashcards(&self, subject_id: i64, now: &str) -> CoreResult<Vec<Flashcard>> {
+        let mut stmt = self.conn.prepare(&format!(
+            "{FLASHCARD_SELECT}
+             WHERE t.subject_id = ?1
+               AND (f.proxima_revision IS NULL OR f.proxima_revision <= ?2)
+             ORDER BY COALESCE(f.proxima_revision, ''), f.id"
+        ))?;
+        let rows = stmt.query_map(params![subject_id, now], map_flashcard)?;
+        collect_flashcards(rows)
+    }
+
+    pub fn update_flashcard(
+        &mut self,
+        id: i64,
+        question: &str,
+        answer: &str,
+    ) -> CoreResult<Flashcard> {
+        self.get_flashcard(id)?;
+        let question = validate_text("la pregunta", question, 1000)?;
+        let answer = validate_text("la respuesta", answer, 4000)?;
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE flashcards SET pregunta = ?2, respuesta = ?3 WHERE id = ?1",
+            params![id, question, answer],
+        )?;
+        log_change(&tx, "flashcard", id, "editar")?;
+        tx.commit()?;
+        self.get_flashcard(id)
+    }
+
+    pub fn delete_flashcard(&mut self, id: i64) -> CoreResult<()> {
+        let tx = self.conn.transaction()?;
+        let deleted = tx.execute("DELETE FROM flashcards WHERE id = ?1", params![id])?;
+        if deleted == 0 {
+            return Err(CoreError::NotFound(format!("tarjeta {id}")));
+        }
+        log_change(&tx, "flashcard", id, "eliminar")?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn review_flashcard_at(
+        &mut self,
+        id: i64,
+        quality: i64,
+        now: NaiveDateTime,
+    ) -> CoreResult<ReviewResult> {
+        let card = self.get_flashcard(id)?;
+        let schedule = crate::learning::schedule(
+            card.repetitions,
+            card.interval_days,
+            card.ease_factor,
+            quality,
+        )?;
+        let now_text = now.format("%Y-%m-%dT%H:%M:%S").to_string();
+        let next_text = (now + Duration::days(schedule.interval_days))
+            .format("%Y-%m-%dT%H:%M:%S")
+            .to_string();
+
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE flashcards
+             SET intervalo_dias = ?2, repasos = ?3, factor_facilidad = ?4,
+                 proxima_revision = ?5, ultima_revision = ?6
+             WHERE id = ?1",
+            params![
+                id,
+                schedule.interval_days,
+                schedule.repetitions,
+                schedule.ease_factor,
+                next_text,
+                now_text
+            ],
+        )?;
+        tx.execute(
+            "INSERT INTO review_log
+                (flashcard_id, topic_id, calidad, intervalo_dias,
+                 factor_facilidad, timestamp)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                id,
+                card.topic_id,
+                quality,
+                schedule.interval_days,
+                schedule.ease_factor,
+                now_text
+            ],
+        )?;
+        log_change(&tx, "flashcard", id, "repasar")?;
+        tx.commit()?;
+
+        let mastery = self.refresh_topic_mastery(card.topic_id)?;
+        let updated = self.get_flashcard(id)?;
+        let message = if schedule.interval_days <= 1 {
+            "Repaso registrado. La tarjeta volverá mañana.".to_string()
+        } else {
+            format!(
+                "Repaso registrado. Próxima revisión en {} días.",
+                schedule.interval_days
+            )
+        };
+        Ok(ReviewResult {
+            flashcard: updated,
+            quality,
+            mastery,
+            message,
+        })
+    }
+
+    pub fn insert_flashcard_proposals(
+        &mut self,
+        subject_id: i64,
+        proposals: &[FlashcardProposal],
+    ) -> CoreResult<i64> {
+        self.get_subject(subject_id)?;
+        if proposals.is_empty() {
+            return Err(CoreError::Validation(
+                "selecciona al menos una tarjeta para guardar".to_string(),
+            ));
+        }
+        for proposal in proposals {
+            let count: i64 = self.conn.query_row(
+                "SELECT COUNT(*) FROM topics WHERE id = ?1 AND subject_id = ?2",
+                params![proposal.topic_id, subject_id],
+                |row| row.get(0),
+            )?;
+            if count == 0 {
+                return Err(CoreError::Validation(format!(
+                    "el tema {} no pertenece a la asignatura",
+                    proposal.topic_id
+                )));
+            }
+            validate_text("la pregunta", &proposal.question, 1000)?;
+            validate_text("la respuesta", &proposal.answer, 4000)?;
+        }
+        let tx = self.conn.transaction()?;
+        for proposal in proposals {
+            tx.execute(
+                "INSERT INTO flashcards (topic_id, pregunta, respuesta, origen)
+                 VALUES (?1, ?2, ?3, 'auto')",
+                params![proposal.topic_id, proposal.question, proposal.answer],
+            )?;
+        }
+        log_change(&tx, "subject", subject_id, "generar_flashcards")?;
+        tx.commit()?;
+        Ok(proposals.len() as i64)
+    }
+
+    pub fn list_mastery(&self, subject_id: i64, now: &str) -> CoreResult<Vec<MasteryOverview>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.id, t.nombre, t.dominio,
+                    (SELECT COUNT(*) FROM flashcards f
+                     WHERE f.topic_id = t.id
+                       AND (f.proxima_revision IS NULL
+                            OR f.proxima_revision <= ?2)),
+                    (SELECT COUNT(*) FROM review_log r WHERE r.topic_id = t.id)
+             FROM topics t
+             WHERE t.subject_id = ?1
+             ORDER BY t.id",
+        )?;
+        let rows = stmt.query_map(params![subject_id, now], |row| {
+            Ok(MasteryOverview {
+                topic_id: row.get(0)?,
+                topic_name: row.get(1)?,
+                mastery: row.get(2)?,
+                due_cards: row.get(3)?,
+                reviews: row.get(4)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    pub fn document_snippets(&self, subject_id: i64) -> CoreResult<Vec<(String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT c.texto, d.nombre, c.seccion
+             FROM document_chunks c
+             JOIN documents d ON d.id = c.document_id
+             WHERE d.subject_id = ?1
+             ORDER BY d.id, c.id
+             LIMIT 200",
+        )?;
+        let rows = stmt.query_map(params![subject_id], |row| {
+            let text: String = row.get(0)?;
+            let name: String = row.get(1)?;
+            let section: Option<String> = row.get(2)?;
+            let label = match section {
+                Some(section) if !section.trim().is_empty() => {
+                    format!("{name} · {}", section.trim())
+                }
+                _ => name,
+            };
+            Ok((text, label))
+        })?;
+        let mut snippets = Vec::new();
+        for row in rows {
+            snippets.push(row?);
+        }
+        Ok(snippets)
+    }
+
+    pub(crate) fn refresh_topic_mastery(&mut self, topic_id: i64) -> CoreResult<f64> {
+        let review_average: Option<f64> = self.conn.query_row(
+            "SELECT AVG(calidad) FROM (
+                SELECT calidad FROM review_log
+                WHERE topic_id = ?1
+                ORDER BY timestamp DESC, id DESC
+                LIMIT 5
+             )",
+            params![topic_id],
+            |row| row.get(0),
+        )?;
+        let minutes: i64 = self.conn.query_row(
+            "SELECT COALESCE(SUM(duracion_min), 0) FROM sessions
+             WHERE topic_id = ?1 AND estado = 'completada'",
+            params![topic_id],
+            |row| row.get(0),
+        )?;
+        let review_component = review_average.unwrap_or(0.0) / 5.0;
+        let time_component = (minutes as f64 / 120.0).clamp(0.0, 1.0);
+        let mastery = (0.6 * review_component + 0.4 * time_component).clamp(0.0, 1.0);
+
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE topics SET dominio = ?2 WHERE id = ?1",
+            params![topic_id, mastery],
+        )?;
+        if changed == 0 {
+            return Err(CoreError::NotFound(format!("tema {topic_id}")));
+        }
+        log_change(&tx, "topic", topic_id, "dominio")?;
+        tx.commit()?;
+        Ok(mastery)
+    }
 }
 
 const DOCUMENT_SELECT: &str = "SELECT d.id, d.subject_id, d.nombre, d.ruta_local, d.tipo,
@@ -727,6 +1015,12 @@ const DOCUMENT_SELECT: &str = "SELECT d.id, d.subject_id, d.nombre, d.ruta_local
            (SELECT SUM(length(c.texto)) FROM document_chunks c
             WHERE c.document_id = d.id), 0)
 FROM documents d";
+
+const FLASHCARD_SELECT: &str = "SELECT f.id, f.topic_id, t.nombre, t.subject_id,
+       f.pregunta, f.respuesta, f.intervalo_dias, f.repasos, f.factor_facilidad,
+       f.proxima_revision, f.ultima_revision, f.origen
+FROM flashcards f
+JOIN topics t ON t.id = f.topic_id";
 
 fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
     Ok(Document {
@@ -741,6 +1035,33 @@ fn map_document(row: &rusqlite::Row<'_>) -> rusqlite::Result<Document> {
         extraction_message: row.get(8)?,
         text_chars: row.get(9)?,
     })
+}
+
+fn map_flashcard(row: &rusqlite::Row<'_>) -> rusqlite::Result<Flashcard> {
+    Ok(Flashcard {
+        id: row.get(0)?,
+        topic_id: row.get(1)?,
+        topic_name: row.get(2)?,
+        subject_id: row.get(3)?,
+        question: row.get(4)?,
+        answer: row.get(5)?,
+        interval_days: row.get(6)?,
+        repetitions: row.get(7)?,
+        ease_factor: row.get(8)?,
+        next_review: row.get(9)?,
+        last_review: row.get(10)?,
+        origin: row.get(11)?,
+    })
+}
+
+fn collect_flashcards(
+    rows: rusqlite::MappedRows<'_, impl FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<Flashcard>>,
+) -> CoreResult<Vec<Flashcard>> {
+    let mut flashcards = Vec::new();
+    for row in rows {
+        flashcards.push(row?);
+    }
+    Ok(flashcards)
 }
 
 fn map_topic(row: &rusqlite::Row<'_>) -> rusqlite::Result<Topic> {
@@ -788,6 +1109,21 @@ fn validate_name(name: &str) -> CoreResult<&str> {
     if trimmed.chars().count() > MAX_NAME_LEN {
         return Err(CoreError::Validation(format!(
             "el nombre no puede superar {MAX_NAME_LEN} caracteres"
+        )));
+    }
+    Ok(trimmed)
+}
+
+fn validate_text<'a>(label: &str, value: &'a str, max_len: usize) -> CoreResult<&'a str> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(CoreError::Validation(format!(
+            "{label} no puede estar vacía"
+        )));
+    }
+    if trimmed.chars().count() > max_len {
+        return Err(CoreError::Validation(format!(
+            "{label} no puede superar {max_len} caracteres"
         )));
     }
     Ok(trimmed)

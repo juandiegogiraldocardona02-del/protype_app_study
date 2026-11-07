@@ -2,7 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1, E2 y E3 completadas, E4 como siguiente paso.
+> Última actualización: Etapas E1–E4 completadas, E5 como siguiente paso.
 
 ## Repositorio
 
@@ -98,6 +98,32 @@ calendario).
 - [x] Pruebas Flutter: 11 verdes.
 - [x] Build Windows y arranque real verificados (migración `0003` aplicada).
 
+## Etapa E4 — COMPLETADA ✅
+
+Cubre FR-009 (flashcards y repetición espaciada) y FR-011 (dominio por tema).
+
+- [x] Migración `0004_learning.sql`: columnas SM-2 en `flashcards`
+      (`repasos`, `factor_facilidad`, `ultima_revision`, `origen`) y tabla
+      `review_log` para conservar el historial de repasos.
+- [x] Algoritmo SM-2 en Rust: intervalos 1 → 6 → intervalo × factor; un repaso
+      con calidad < 3 reinicia repeticiones y reduce el factor (límites
+      1,3–3,0).
+- [x] CRUD de flashcards manual con validación y borrado en cascada por tema.
+- [x] Generación de propuestas desde los temas y fragmentos de documentos:
+      busca una frase que mencione el tema y propone pregunta/respuesta con
+      fuente; si no hay fuente, lo indica para revisión. El usuario acepta o
+      descarta cada propuesta antes de guardar.
+- [x] Repaso guiado en Flutter: pregunta → mostrar respuesta → valorar
+      (Otra vez/Difícil/Bien/Fácil); las tarjetas repasadas se reprograman.
+- [x] Dominio por tema (0–1) = 60 % media de los últimos 5 repasos + 40 % de
+      tiempo efectivo completado (máx. 120 min); se recalcula al repasar y al
+      completar una sesión. La UI sugiere repasar temas con dominio bajo.
+- [x] Pestaña Progreso con dominio por tema, tarjetas pendientes/totales,
+      revisión, creación manual, edición, borrado y generación propuesta.
+- [x] Pruebas Rust: 32 verdes (+2 de integración opcionales).
+- [x] Pruebas Flutter: 14 verdes.
+- [x] Build Windows y arranque real verificados (migración `0004` aplicada).
+
 ## Decisiones de implementación tomadas
 
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
@@ -125,6 +151,27 @@ calendario).
   completadas. Guarda `inicio_original` para poder deshacer el último cambio.
 - **Calendario:** el rango se consulta a Rust por fechas ISO; las vistas
   mensual/semanal/diaria son locales y no hacen peticiones de red.
+- **SM-2:** se usa la calidad 0–5 del repaso. La tarjeta nueva vence de
+  inmediato; los repasos con calidad < 3 reinician la secuencia. El factor de
+  facilidad se limita a 1,3–3,0 para evitar intervalos descontrolados.
+- **Generación de tarjetas:** sin LLM (etapa E6), se propone una tarjeta por
+  tema usando la frase de los documentos que menciona el tema. Si no hay
+  coincidencia, se propone una tarjeta marcada como «sin fuente» para que el
+  usuario la edite o la descarte. Nada se guarda sin confirmación.
+- **Dominio:** media de los últimos 5 repasos (60 %) y minutos efectivos de
+  sesiones completadas (40 %, tope 120 min). Las evaluaciones se integrarán en
+  la etapa E8; entonces se ampliará la fórmula sin cambiar el esquema.
+- **Historial:** cada repaso queda en `review_log` con calidad, intervalo y
+  factor, lo que permite recalcular el dominio y auditar la evolución.
+
+## Verificación de E4 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 32 pruebas verdes, 2 ignoradas (integración opcional de E2).
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 14 pruebas verdes.
+- `flutter build windows --debug`: correcto.
+- Arranque real del `.exe` durante 10 s: proceso vivo (migración `0004`).
 
 ## Verificación de E3 (resultados)
 
@@ -158,7 +205,6 @@ calendario).
 
 ## Pendiente por etapas (según §12)
 
-- E4: flashcards, SRS y dominio por tema (FR-009/011).
 - E5: XP, rachas y niveles (FR-012/013).
 - E6: asistente IA local GGUF (FR-014/016, RES-004).
 - E7: `.studyplan` y copias globales (FR-002/019).

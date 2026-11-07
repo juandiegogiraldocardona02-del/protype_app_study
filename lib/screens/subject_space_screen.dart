@@ -5,6 +5,7 @@ import '../widgets/dialogs.dart';
 import '../widgets/document_library.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/subject_agenda.dart';
+import '../widgets/subject_progress.dart';
 
 class SubjectSpaceScreen extends StatelessWidget {
   const SubjectSpaceScreen({super.key, required this.subject});
@@ -75,13 +76,7 @@ class SubjectSpaceScreen extends StatelessWidget {
                   'Los cuestionarios generados desde tus documentos llegarán en '
                   'la etapa E8, con corrección totalmente local.',
             ),
-            const _StagePanel(
-              icon: Icons.insights_outlined,
-              title: 'Progreso por tema',
-              message:
-                  'El dominio por tema se calculará con evaluaciones y repasos '
-                  'a partir de la etapa E4.',
-            ),
+            SubjectProgressPanel(subject: subject),
           ],
         ),
       ),

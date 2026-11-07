@@ -4,12 +4,16 @@ export '../bridge/bridge.dart'
     show
         AvailabilityDayDto,
         DocumentDto,
+        FlashcardDto,
+        FlashcardProposalDto,
         ImportOutcomeDto,
+        MasteryOverviewDto,
         PlanProposalDto,
         PlanSettingsDto,
         PlannedSessionDto,
         ProfileDto,
         ReplanResultDto,
+        ReviewResultDto,
         SessionDto,
         SubjectDto,
         TopicDto;
@@ -73,4 +77,33 @@ abstract class StudyRepository {
   Future<ReplanResultDto> replanSubject(int subjectId);
 
   Future<int> revertReplan(int subjectId);
+
+  Future<List<FlashcardDto>> listFlashcards(int subjectId);
+
+  Future<FlashcardDto> createFlashcard(
+    int topicId,
+    String question,
+    String answer,
+  );
+
+  Future<FlashcardDto> updateFlashcard(
+    int id,
+    String question,
+    String answer,
+  );
+
+  Future<void> deleteFlashcard(int id);
+
+  Future<List<FlashcardDto>> listDueFlashcards(int subjectId);
+
+  Future<ReviewResultDto> reviewFlashcard(int id, int quality);
+
+  Future<List<FlashcardProposalDto>> previewFlashcards(int subjectId);
+
+  Future<int> saveFlashcards(
+    int subjectId,
+    List<FlashcardProposalDto> proposals,
+  );
+
+  Future<List<MasteryOverviewDto>> listMastery(int subjectId);
 }

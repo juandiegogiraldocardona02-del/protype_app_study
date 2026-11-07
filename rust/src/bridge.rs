@@ -106,6 +106,48 @@ pub struct ReplanResultDto {
     pub message: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct FlashcardDto {
+    pub id: i64,
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub subject_id: i64,
+    pub question: String,
+    pub answer: String,
+    pub interval_days: i64,
+    pub repetitions: i64,
+    pub ease_factor: f64,
+    pub next_review: Option<String>,
+    pub last_review: Option<String>,
+    pub origin: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct FlashcardProposalDto {
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub question: String,
+    pub answer: String,
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReviewResultDto {
+    pub flashcard: FlashcardDto,
+    pub quality: i64,
+    pub mastery: f64,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct MasteryOverviewDto {
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub mastery: f64,
+    pub due_cards: i64,
+    pub reviews: i64,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -235,6 +277,60 @@ impl From<domain::ReplanResult> for ReplanResultDto {
         Self {
             moved: value.moved,
             message: value.message,
+        }
+    }
+}
+
+impl From<domain::Flashcard> for FlashcardDto {
+    fn from(value: domain::Flashcard) -> Self {
+        Self {
+            id: value.id,
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+            subject_id: value.subject_id,
+            question: value.question,
+            answer: value.answer,
+            interval_days: value.interval_days,
+            repetitions: value.repetitions,
+            ease_factor: value.ease_factor,
+            next_review: value.next_review,
+            last_review: value.last_review,
+            origin: value.origin,
+        }
+    }
+}
+
+impl From<domain::FlashcardProposal> for FlashcardProposalDto {
+    fn from(value: domain::FlashcardProposal) -> Self {
+        Self {
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+            question: value.question,
+            answer: value.answer,
+            source: value.source,
+        }
+    }
+}
+
+impl From<domain::ReviewResult> for ReviewResultDto {
+    fn from(value: domain::ReviewResult) -> Self {
+        Self {
+            flashcard: value.flashcard.into(),
+            quality: value.quality,
+            mastery: value.mastery,
+            message: value.message,
+        }
+    }
+}
+
+impl From<domain::MasteryOverview> for MasteryOverviewDto {
+    fn from(value: domain::MasteryOverview) -> Self {
+        Self {
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+            mastery: value.mastery,
+            due_cards: value.due_cards,
+            reviews: value.reviews,
         }
     }
 }
@@ -399,4 +495,71 @@ pub fn replan_subject(subject_id: i64) -> anyhow::Result<ReplanResultDto> {
 pub fn revert_replan(subject_id: i64) -> anyhow::Result<i64> {
     let reverted = db::with_db(|database| crate::planning::revert_replan(database, subject_id))?;
     Ok(reverted)
+}
+
+pub fn list_flashcards(subject_id: i64) -> anyhow::Result<Vec<FlashcardDto>> {
+    let cards = db::with_db(|database| database.list_flashcards(subject_id))?;
+    Ok(cards.into_iter().map(FlashcardDto::from).collect())
+}
+
+pub fn create_flashcard(
+    topic_id: i64,
+    question: String,
+    answer: String,
+) -> anyhow::Result<FlashcardDto> {
+    let card = db::with_db(|database| database.create_flashcard(topic_id, &question, &answer))?;
+    Ok(card.into())
+}
+
+pub fn update_flashcard(id: i64, question: String, answer: String) -> anyhow::Result<FlashcardDto> {
+    let card = db::with_db(|database| database.update_flashcard(id, &question, &answer))?;
+    Ok(card.into())
+}
+
+pub fn delete_flashcard(id: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.delete_flashcard(id))?;
+    Ok(())
+}
+
+pub fn list_due_flashcards(subject_id: i64) -> anyhow::Result<Vec<FlashcardDto>> {
+    let cards = db::with_db(|database| crate::learning::due_flashcards(database, subject_id))?;
+    Ok(cards.into_iter().map(FlashcardDto::from).collect())
+}
+
+pub fn review_flashcard(id: i64, quality: i64) -> anyhow::Result<ReviewResultDto> {
+    let result = db::with_db(|database| crate::learning::review_now(database, id, quality))?;
+    Ok(result.into())
+}
+
+pub fn preview_flashcards(subject_id: i64) -> anyhow::Result<Vec<FlashcardProposalDto>> {
+    let proposals =
+        db::with_db(|database| crate::learning::preview_flashcards(database, subject_id))?;
+    Ok(proposals
+        .into_iter()
+        .map(FlashcardProposalDto::from)
+        .collect())
+}
+
+pub fn save_flashcards(
+    subject_id: i64,
+    proposals: Vec<FlashcardProposalDto>,
+) -> anyhow::Result<i64> {
+    let proposals: Vec<domain::FlashcardProposal> = proposals
+        .into_iter()
+        .map(|proposal| domain::FlashcardProposal {
+            topic_id: proposal.topic_id,
+            topic_name: proposal.topic_name,
+            question: proposal.question,
+            answer: proposal.answer,
+            source: proposal.source,
+        })
+        .collect();
+    let count =
+        db::with_db(|database| crate::learning::save_flashcards(database, subject_id, &proposals))?;
+    Ok(count)
+}
+
+pub fn list_mastery(subject_id: i64) -> anyhow::Result<Vec<MasteryOverviewDto>> {
+    let overview = db::with_db(|database| crate::learning::mastery_overview(database, subject_id))?;
+    Ok(overview.into_iter().map(MasteryOverviewDto::from).collect())
 }

@@ -106,6 +106,48 @@ pub struct ReplanResult {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Flashcard {
+    pub id: i64,
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub subject_id: i64,
+    pub question: String,
+    pub answer: String,
+    pub interval_days: i64,
+    pub repetitions: i64,
+    pub ease_factor: f64,
+    pub next_review: Option<String>,
+    pub last_review: Option<String>,
+    pub origin: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FlashcardProposal {
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub question: String,
+    pub answer: String,
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReviewResult {
+    pub flashcard: Flashcard,
+    pub quality: i64,
+    pub mastery: f64,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MasteryOverview {
+    pub topic_id: i64,
+    pub topic_name: String,
+    pub mastery: f64,
+    pub due_cards: i64,
+    pub reviews: i64,
+}
+
 pub mod defaults {
     pub const SUBJECT_COLOR: &str = "#4F46E5";
     pub const PROFILE_CONFIG: &str = "{}";

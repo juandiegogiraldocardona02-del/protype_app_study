@@ -9,11 +9,14 @@ class FakeStudyRepository implements StudyRepository {
   final Map<int, List<TopicDto>> _topics = <int, List<TopicDto>>{};
   final Map<int, PlanSettingsDto> _settings = <int, PlanSettingsDto>{};
   final Map<int, SessionDto> _sessions = <int, SessionDto>{};
+  final Map<int, FlashcardDto> _flashcards = <int, FlashcardDto>{};
+  final Map<int, List<int>> _reviewQualities = <int, List<int>>{};
   int _nextProfileId = 1;
   int _nextSubjectId = 1;
   int _nextDocumentId = 1;
   int _nextTopicId = 1;
   int _nextSessionId = 1;
+  int _nextFlashcardId = 1;
   bool ocrAvailableResult = false;
 
   ProfileDto addProfile(String name) {
@@ -68,11 +71,18 @@ class FakeStudyRepository implements StudyRepository {
   Future<void> deleteProfile(int id) async {
     _profiles.remove(id);
     for (final subject in _subjects.remove(id) ?? const <SubjectDto>[]) {
-      _documents.remove(subject.id);
-      _topics.remove(subject.id);
-      _settings.remove(subject.id);
-      _sessions.removeWhere((_, session) => session.subjectId == subject.id);
+      _removeSubjectData(subject.id);
     }
+  }
+
+  void _removeSubjectData(int subjectId) {
+    _documents.remove(subjectId);
+    final topics = _topics.remove(subjectId) ?? const <TopicDto>[];
+    final topicIds = topics.map((topic) => topic.id).toSet();
+    _flashcards.removeWhere((_, card) => topicIds.contains(card.topicId));
+    _reviewQualities.removeWhere((topicId, _) => topicIds.contains(topicId));
+    _settings.remove(subjectId);
+    _sessions.removeWhere((_, session) => session.subjectId == subjectId);
   }
 
   @override
@@ -117,10 +127,7 @@ class FakeStudyRepository implements StudyRepository {
     for (final subjects in _subjects.values) {
       subjects.removeWhere((subject) => subject.id == id);
     }
-    _documents.remove(id);
-    _topics.remove(id);
-    _settings.remove(id);
-    _sessions.removeWhere((_, session) => session.subjectId == id);
+    _removeSubjectData(id);
   }
 
   DocumentDto addDocument(
@@ -224,6 +231,39 @@ class FakeStudyRepository implements StudyRepository {
     return session;
   }
 
+  FlashcardDto addFlashcard(
+    int topicId, {
+    String question = '¿Pregunta?',
+    String answer = 'Respuesta',
+    String? nextReview,
+    String origin = 'manual',
+    int intervalDays = 0,
+    int repetitions = 0,
+    double easeFactor = 2.5,
+    String? lastReview,
+  }) {
+    final topic = _findTopic(topicId);
+    if (topic == null) {
+      throw StateError('tema $topicId no encontrado');
+    }
+    final card = FlashcardDto(
+      id: _nextFlashcardId++,
+      topicId: topicId,
+      topicName: topic.name,
+      subjectId: topic.subjectId,
+      question: question,
+      answer: answer,
+      intervalDays: intervalDays,
+      repetitions: repetitions,
+      easeFactor: easeFactor,
+      nextReview: nextReview,
+      lastReview: lastReview,
+      origin: origin,
+    );
+    _flashcards[card.id] = card;
+    return card;
+  }
+
   PlanSettingsDto setPlanSettings(
     int subjectId, {
     int sessionMinutes = 50,
@@ -245,6 +285,55 @@ class FakeStudyRepository implements StudyRepository {
     );
     _settings[subjectId] = settings;
     return settings;
+  }
+
+  TopicDto? _findTopic(int topicId) {
+    for (final topics in _topics.values) {
+      for (final topic in topics) {
+        if (topic.id == topicId) {
+          return topic;
+        }
+      }
+    }
+    return null;
+  }
+
+  bool _isDue(FlashcardDto card) {
+    final next = card.nextReview;
+    if (next == null) {
+      return true;
+    }
+    final parsed = DateTime.tryParse(next);
+    return parsed == null || !parsed.isAfter(DateTime.now());
+  }
+
+  double _masteryFor(int topicId) {
+    final qualities = _reviewQualities[topicId] ?? const <int>[];
+    if (qualities.isEmpty) {
+      return 0;
+    }
+    final recent = qualities.length > 5
+        ? qualities.sublist(qualities.length - 5)
+        : qualities;
+    final average = recent.reduce((a, b) => a + b) / recent.length;
+    return ((average / 5) * 0.6).clamp(0.0, 1.0);
+  }
+
+  void _updateTopicMastery(int topicId, double mastery) {
+    for (final topics in _topics.values) {
+      final index = topics.indexWhere((topic) => topic.id == topicId);
+      if (index != -1) {
+        final current = topics[index];
+        topics[index] = TopicDto(
+          id: current.id,
+          subjectId: current.subjectId,
+          name: current.name,
+          difficulty: current.difficulty,
+          mastery: mastery,
+        );
+        return;
+      }
+    }
   }
 
   SubjectDto? _findSubject(int subjectId) {
@@ -495,6 +584,165 @@ class FakeStudyRepository implements StudyRepository {
       reverted += 1;
     }
     return reverted;
+  }
+
+  @override
+  Future<List<FlashcardDto>> listFlashcards(int subjectId) async {
+    return _flashcards.values
+        .where((card) => card.subjectId == subjectId)
+        .toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+  }
+
+  @override
+  Future<FlashcardDto> createFlashcard(
+    int topicId,
+    String question,
+    String answer,
+  ) async {
+    return addFlashcard(
+      topicId,
+      question: question.trim(),
+      answer: answer.trim(),
+    );
+  }
+
+  @override
+  Future<FlashcardDto> updateFlashcard(
+    int id,
+    String question,
+    String answer,
+  ) async {
+    final current = _flashcards[id];
+    if (current == null) {
+      throw StateError('tarjeta $id no encontrada');
+    }
+    final updated = FlashcardDto(
+      id: current.id,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectId: current.subjectId,
+      question: question.trim(),
+      answer: answer.trim(),
+      intervalDays: current.intervalDays,
+      repetitions: current.repetitions,
+      easeFactor: current.easeFactor,
+      nextReview: current.nextReview,
+      lastReview: current.lastReview,
+      origin: current.origin,
+    );
+    _flashcards[id] = updated;
+    return updated;
+  }
+
+  @override
+  Future<void> deleteFlashcard(int id) async {
+    _flashcards.remove(id);
+  }
+
+  @override
+  Future<List<FlashcardDto>> listDueFlashcards(int subjectId) async {
+    return _flashcards.values
+        .where((card) => card.subjectId == subjectId && _isDue(card))
+        .toList()
+      ..sort((a, b) {
+        final first = a.nextReview ?? '';
+        final second = b.nextReview ?? '';
+        final byDate = first.compareTo(second);
+        return byDate == 0 ? a.id.compareTo(b.id) : byDate;
+      });
+  }
+
+  @override
+  Future<ReviewResultDto> reviewFlashcard(int id, int quality) async {
+    final current = _flashcards[id];
+    if (current == null) {
+      throw StateError('tarjeta $id no encontrada');
+    }
+    final repetitions = quality < 3 ? 0 : current.repetitions + 1;
+    final interval = quality < 3
+        ? 1
+        : current.repetitions == 0
+        ? 1
+        : current.repetitions == 1
+        ? 6
+        : (current.intervalDays * current.easeFactor).round().clamp(1, 3650);
+    final delta = quality.toDouble();
+    final ease = (current.easeFactor +
+            (0.1 - (5 - delta) * (0.08 + (5 - delta) * 0.02)))
+        .clamp(1.3, 3.0);
+    final now = DateTime.now();
+    final updated = FlashcardDto(
+      id: current.id,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectId: current.subjectId,
+      question: current.question,
+      answer: current.answer,
+      intervalDays: interval,
+      repetitions: repetitions,
+      easeFactor: ease,
+      nextReview: _iso(now.add(Duration(days: interval))),
+      lastReview: _iso(now),
+      origin: current.origin,
+    );
+    _flashcards[id] = updated;
+    _reviewQualities.putIfAbsent(current.topicId, () => <int>[]).add(quality);
+    final mastery = _masteryFor(current.topicId);
+    _updateTopicMastery(current.topicId, mastery);
+    return ReviewResultDto(
+      flashcard: updated,
+      quality: quality,
+      mastery: mastery,
+      message: 'Repaso registrado.',
+    );
+  }
+
+  @override
+  Future<List<FlashcardProposalDto>> previewFlashcards(int subjectId) async {
+    final topics = _topics[subjectId] ?? const <TopicDto>[];
+    return [
+      for (final topic in topics)
+        FlashcardProposalDto(
+          topicId: topic.id,
+          topicName: topic.name,
+          question: '¿Qué debes recordar sobre «${topic.name}»?',
+          answer: 'Revisa el contenido de «${topic.name}» en la asignatura.',
+        ),
+    ];
+  }
+
+  @override
+  Future<int> saveFlashcards(
+    int subjectId,
+    List<FlashcardProposalDto> proposals,
+  ) async {
+    for (final proposal in proposals) {
+      addFlashcard(
+        proposal.topicId,
+        question: proposal.question,
+        answer: proposal.answer,
+        origin: 'auto',
+      );
+    }
+    return proposals.length;
+  }
+
+  @override
+  Future<List<MasteryOverviewDto>> listMastery(int subjectId) async {
+    final topics = _topics[subjectId] ?? const <TopicDto>[];
+    return [
+      for (final topic in topics)
+        MasteryOverviewDto(
+          topicId: topic.id,
+          topicName: topic.name,
+          mastery: _masteryFor(topic.id),
+          dueCards: _flashcards.values
+              .where((card) => card.topicId == topic.id && _isDue(card))
+              .length,
+          reviews: _reviewQualities[topic.id]?.length ?? 0,
+        ),
+    ];
   }
 }
 

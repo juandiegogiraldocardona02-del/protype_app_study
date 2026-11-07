@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -145,6 +145,57 @@ Future<ReplanResultDto> replanSubject({required PlatformInt64 subjectId}) =>
 Future<PlatformInt64> revertReplan({required PlatformInt64 subjectId}) =>
     RustLib.instance.api.crateBridgeRevertReplan(subjectId: subjectId);
 
+Future<List<FlashcardDto>> listFlashcards({required PlatformInt64 subjectId}) =>
+    RustLib.instance.api.crateBridgeListFlashcards(subjectId: subjectId);
+
+Future<FlashcardDto> createFlashcard({
+  required PlatformInt64 topicId,
+  required String question,
+  required String answer,
+}) => RustLib.instance.api.crateBridgeCreateFlashcard(
+  topicId: topicId,
+  question: question,
+  answer: answer,
+);
+
+Future<FlashcardDto> updateFlashcard({
+  required PlatformInt64 id,
+  required String question,
+  required String answer,
+}) => RustLib.instance.api.crateBridgeUpdateFlashcard(
+  id: id,
+  question: question,
+  answer: answer,
+);
+
+Future<void> deleteFlashcard({required PlatformInt64 id}) =>
+    RustLib.instance.api.crateBridgeDeleteFlashcard(id: id);
+
+Future<List<FlashcardDto>> listDueFlashcards({
+  required PlatformInt64 subjectId,
+}) => RustLib.instance.api.crateBridgeListDueFlashcards(subjectId: subjectId);
+
+Future<ReviewResultDto> reviewFlashcard({
+  required PlatformInt64 id,
+  required PlatformInt64 quality,
+}) => RustLib.instance.api.crateBridgeReviewFlashcard(id: id, quality: quality);
+
+Future<List<FlashcardProposalDto>> previewFlashcards({
+  required PlatformInt64 subjectId,
+}) => RustLib.instance.api.crateBridgePreviewFlashcards(subjectId: subjectId);
+
+Future<PlatformInt64> saveFlashcards({
+  required PlatformInt64 subjectId,
+  required List<FlashcardProposalDto> proposals,
+}) => RustLib.instance.api.crateBridgeSaveFlashcards(
+  subjectId: subjectId,
+  proposals: proposals,
+);
+
+Future<List<MasteryOverviewDto>> listMastery({
+  required PlatformInt64 subjectId,
+}) => RustLib.instance.api.crateBridgeListMastery(subjectId: subjectId);
+
 class AvailabilityDayDto {
   final PlatformInt64 weekday;
   final PlatformInt64 minutes;
@@ -218,6 +269,104 @@ class DocumentDto {
           textChars == other.textChars;
 }
 
+class FlashcardDto {
+  final PlatformInt64 id;
+  final PlatformInt64 topicId;
+  final String topicName;
+  final PlatformInt64 subjectId;
+  final String question;
+  final String answer;
+  final PlatformInt64 intervalDays;
+  final PlatformInt64 repetitions;
+  final double easeFactor;
+  final String? nextReview;
+  final String? lastReview;
+  final String origin;
+
+  const FlashcardDto({
+    required this.id,
+    required this.topicId,
+    required this.topicName,
+    required this.subjectId,
+    required this.question,
+    required this.answer,
+    required this.intervalDays,
+    required this.repetitions,
+    required this.easeFactor,
+    this.nextReview,
+    this.lastReview,
+    required this.origin,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      topicId.hashCode ^
+      topicName.hashCode ^
+      subjectId.hashCode ^
+      question.hashCode ^
+      answer.hashCode ^
+      intervalDays.hashCode ^
+      repetitions.hashCode ^
+      easeFactor.hashCode ^
+      nextReview.hashCode ^
+      lastReview.hashCode ^
+      origin.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FlashcardDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          topicId == other.topicId &&
+          topicName == other.topicName &&
+          subjectId == other.subjectId &&
+          question == other.question &&
+          answer == other.answer &&
+          intervalDays == other.intervalDays &&
+          repetitions == other.repetitions &&
+          easeFactor == other.easeFactor &&
+          nextReview == other.nextReview &&
+          lastReview == other.lastReview &&
+          origin == other.origin;
+}
+
+class FlashcardProposalDto {
+  final PlatformInt64 topicId;
+  final String topicName;
+  final String question;
+  final String answer;
+  final String? source;
+
+  const FlashcardProposalDto({
+    required this.topicId,
+    required this.topicName,
+    required this.question,
+    required this.answer,
+    this.source,
+  });
+
+  @override
+  int get hashCode =>
+      topicId.hashCode ^
+      topicName.hashCode ^
+      question.hashCode ^
+      answer.hashCode ^
+      source.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FlashcardProposalDto &&
+          runtimeType == other.runtimeType &&
+          topicId == other.topicId &&
+          topicName == other.topicName &&
+          question == other.question &&
+          answer == other.answer &&
+          source == other.source;
+}
+
 class ImportOutcomeDto {
   final DocumentDto document;
   final bool duplicate;
@@ -247,6 +396,41 @@ class ImportOutcomeDto {
           duplicate == other.duplicate &&
           ocrUsed == other.ocrUsed &&
           message == other.message;
+}
+
+class MasteryOverviewDto {
+  final PlatformInt64 topicId;
+  final String topicName;
+  final double mastery;
+  final PlatformInt64 dueCards;
+  final PlatformInt64 reviews;
+
+  const MasteryOverviewDto({
+    required this.topicId,
+    required this.topicName,
+    required this.mastery,
+    required this.dueCards,
+    required this.reviews,
+  });
+
+  @override
+  int get hashCode =>
+      topicId.hashCode ^
+      topicName.hashCode ^
+      mastery.hashCode ^
+      dueCards.hashCode ^
+      reviews.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MasteryOverviewDto &&
+          runtimeType == other.runtimeType &&
+          topicId == other.topicId &&
+          topicName == other.topicName &&
+          mastery == other.mastery &&
+          dueCards == other.dueCards &&
+          reviews == other.reviews;
 }
 
 class PlanProposalDto {
@@ -389,6 +573,37 @@ class ReplanResultDto {
       other is ReplanResultDto &&
           runtimeType == other.runtimeType &&
           moved == other.moved &&
+          message == other.message;
+}
+
+class ReviewResultDto {
+  final FlashcardDto flashcard;
+  final PlatformInt64 quality;
+  final double mastery;
+  final String message;
+
+  const ReviewResultDto({
+    required this.flashcard,
+    required this.quality,
+    required this.mastery,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      flashcard.hashCode ^
+      quality.hashCode ^
+      mastery.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReviewResultDto &&
+          runtimeType == other.runtimeType &&
+          flashcard == other.flashcard &&
+          quality == other.quality &&
+          mastery == other.mastery &&
           message == other.message;
 }
 

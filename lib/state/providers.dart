@@ -292,3 +292,88 @@ class PlanActions {
 }
 
 final planActionsProvider = Provider<PlanActions>((ref) => PlanActions(ref));
+
+final flashcardsProvider = FutureProvider.family<List<FlashcardDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listFlashcards(subjectId);
+});
+
+final dueFlashcardsProvider = FutureProvider.family<List<FlashcardDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listDueFlashcards(subjectId);
+});
+
+final masteryProvider = FutureProvider.family<List<MasteryOverviewDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listMastery(subjectId);
+});
+
+class FlashcardActions {
+  FlashcardActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  void _invalidate(int subjectId) {
+    _ref.invalidate(flashcardsProvider(subjectId));
+    _ref.invalidate(dueFlashcardsProvider(subjectId));
+    _ref.invalidate(masteryProvider(subjectId));
+    _ref.invalidate(topicsProvider(subjectId));
+  }
+
+  Future<FlashcardDto> create(
+    int subjectId,
+    int topicId,
+    String question,
+    String answer,
+  ) async {
+    final created = await _repo.createFlashcard(topicId, question, answer);
+    _invalidate(subjectId);
+    return created;
+  }
+
+  Future<FlashcardDto> update(
+    int subjectId,
+    int id,
+    String question,
+    String answer,
+  ) async {
+    final updated = await _repo.updateFlashcard(id, question, answer);
+    _invalidate(subjectId);
+    return updated;
+  }
+
+  Future<void> delete(int subjectId, int id) async {
+    await _repo.deleteFlashcard(id);
+    _invalidate(subjectId);
+  }
+
+  Future<List<FlashcardProposalDto>> preview(int subjectId) =>
+      _repo.previewFlashcards(subjectId);
+
+  Future<int> save(
+    int subjectId,
+    List<FlashcardProposalDto> proposals,
+  ) async {
+    final count = await _repo.saveFlashcards(subjectId, proposals);
+    _invalidate(subjectId);
+    return count;
+  }
+
+  Future<ReviewResultDto> review(int subjectId, int id, int quality) async {
+    final result = await _repo.reviewFlashcard(id, quality);
+    _invalidate(subjectId);
+    return result;
+  }
+}
+
+final flashcardActionsProvider = Provider<FlashcardActions>(
+  (ref) => FlashcardActions(ref),
+);

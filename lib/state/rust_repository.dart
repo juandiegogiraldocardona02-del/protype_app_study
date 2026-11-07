@@ -115,4 +115,51 @@ class RustStudyRepository implements StudyRepository {
   @override
   Future<int> revertReplan(int subjectId) =>
       rust.revertReplan(subjectId: subjectId);
+
+  @override
+  Future<List<FlashcardDto>> listFlashcards(int subjectId) =>
+      rust.listFlashcards(subjectId: subjectId);
+
+  @override
+  Future<FlashcardDto> createFlashcard(
+    int topicId,
+    String question,
+    String answer,
+  ) => rust.createFlashcard(
+    topicId: topicId,
+    question: question,
+    answer: answer,
+  );
+
+  @override
+  Future<FlashcardDto> updateFlashcard(
+    int id,
+    String question,
+    String answer,
+  ) => rust.updateFlashcard(id: id, question: question, answer: answer);
+
+  @override
+  Future<void> deleteFlashcard(int id) => rust.deleteFlashcard(id: id);
+
+  @override
+  Future<List<FlashcardDto>> listDueFlashcards(int subjectId) =>
+      rust.listDueFlashcards(subjectId: subjectId);
+
+  @override
+  Future<ReviewResultDto> reviewFlashcard(int id, int quality) =>
+      rust.reviewFlashcard(id: id, quality: quality);
+
+  @override
+  Future<List<FlashcardProposalDto>> previewFlashcards(int subjectId) =>
+      rust.previewFlashcards(subjectId: subjectId);
+
+  @override
+  Future<int> saveFlashcards(
+    int subjectId,
+    List<FlashcardProposalDto> proposals,
+  ) => rust.saveFlashcards(subjectId: subjectId, proposals: proposals);
+
+  @override
+  Future<List<MasteryOverviewDto>> listMastery(int subjectId) =>
+      rust.listMastery(subjectId: subjectId);
 }

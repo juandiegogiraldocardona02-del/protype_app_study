@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 454504630;
+  int get rustContentHash => 999157140;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -81,6 +81,12 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<FlashcardDto> crateBridgeCreateFlashcard({
+    required PlatformInt64 topicId,
+    required String question,
+    required String answer,
+  });
+
   Future<ProfileDto> crateBridgeCreateProfile({required String name});
 
   Future<SubjectDto> crateBridgeCreateSubject({
@@ -96,6 +102,8 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<void> crateBridgeDeleteDocument({required PlatformInt64 id});
+
+  Future<void> crateBridgeDeleteFlashcard({required PlatformInt64 id});
 
   Future<void> crateBridgeDeleteProfile({required PlatformInt64 id});
 
@@ -120,6 +128,18 @@ abstract class RustLibApi extends BaseApi {
     required PlatformInt64 subjectId,
   });
 
+  Future<List<FlashcardDto>> crateBridgeListDueFlashcards({
+    required PlatformInt64 subjectId,
+  });
+
+  Future<List<FlashcardDto>> crateBridgeListFlashcards({
+    required PlatformInt64 subjectId,
+  });
+
+  Future<List<MasteryOverviewDto>> crateBridgeListMastery({
+    required PlatformInt64 subjectId,
+  });
+
   Future<List<ProfileDto>> crateBridgeListProfiles();
 
   Future<List<SessionDto>> crateBridgeListSessions({
@@ -139,6 +159,10 @@ abstract class RustLibApi extends BaseApi {
 
   Future<bool> crateBridgeOcrAvailable();
 
+  Future<List<FlashcardProposalDto>> crateBridgePreviewFlashcards({
+    required PlatformInt64 subjectId,
+  });
+
   Future<PlanProposalDto> crateBridgePreviewPlan({
     required PlatformInt64 subjectId,
   });
@@ -154,6 +178,16 @@ abstract class RustLibApi extends BaseApi {
 
   Future<PlatformInt64> crateBridgeRevertReplan({
     required PlatformInt64 subjectId,
+  });
+
+  Future<ReviewResultDto> crateBridgeReviewFlashcard({
+    required PlatformInt64 id,
+    required PlatformInt64 quality,
+  });
+
+  Future<PlatformInt64> crateBridgeSaveFlashcards({
+    required PlatformInt64 subjectId,
+    required List<FlashcardProposalDto> proposals,
   });
 
   Future<PlatformInt64> crateBridgeSavePlan({
@@ -172,6 +206,12 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateBridgeSetSessionState({
     required PlatformInt64 id,
     required String state,
+  });
+
+  Future<FlashcardDto> crateBridgeUpdateFlashcard({
+    required PlatformInt64 id,
+    required String question,
+    required String answer,
   });
 
   Future<SubjectDto> crateBridgeUpdateSubject({
@@ -196,6 +236,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<FlashcardDto> crateBridgeCreateFlashcard({
+    required PlatformInt64 topicId,
+    required String question,
+    required String answer,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(topicId, serializer);
+          sse_encode_String(question, serializer);
+          sse_encode_String(answer, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_flashcard_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeCreateFlashcardConstMeta,
+        argValues: [topicId, question, answer],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeCreateFlashcardConstMeta => const TaskConstMeta(
+    debugName: "create_flashcard",
+    argNames: ["topicId", "question", "answer"],
+  );
+
+  @override
   Future<ProfileDto> crateBridgeCreateProfile({required String name}) {
     return handler.executeNormal(
       NormalTask(
@@ -205,7 +281,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 2,
             port: port_,
           );
         },
@@ -239,7 +315,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 3,
             port: port_,
           );
         },
@@ -275,7 +351,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 4,
             port: port_,
           );
         },
@@ -305,7 +381,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -324,6 +400,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "delete_document", argNames: ["id"]);
 
   @override
+  Future<void> crateBridgeDeleteFlashcard({required PlatformInt64 id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeDeleteFlashcardConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeDeleteFlashcardConstMeta =>
+      const TaskConstMeta(debugName: "delete_flashcard", argNames: ["id"]);
+
+  @override
   Future<void> crateBridgeDeleteProfile({required PlatformInt64 id}) {
     return handler.executeNormal(
       NormalTask(
@@ -333,7 +437,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 7,
             port: port_,
           );
         },
@@ -361,7 +465,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
@@ -389,7 +493,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 9,
             port: port_,
           );
         },
@@ -419,7 +523,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 10,
             port: port_,
           );
         },
@@ -453,7 +557,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 11,
             port: port_,
           );
         },
@@ -482,7 +586,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -507,7 +611,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(path, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -535,7 +639,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 14,
             port: port_,
           );
         },
@@ -554,6 +658,101 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "list_documents", argNames: ["subjectId"]);
 
   @override
+  Future<List<FlashcardDto>> crateBridgeListDueFlashcards({
+    required PlatformInt64 subjectId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(subjectId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_flashcard_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeListDueFlashcardsConstMeta,
+        argValues: [subjectId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeListDueFlashcardsConstMeta =>
+      const TaskConstMeta(
+        debugName: "list_due_flashcards",
+        argNames: ["subjectId"],
+      );
+
+  @override
+  Future<List<FlashcardDto>> crateBridgeListFlashcards({
+    required PlatformInt64 subjectId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(subjectId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_flashcard_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeListFlashcardsConstMeta,
+        argValues: [subjectId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeListFlashcardsConstMeta => const TaskConstMeta(
+    debugName: "list_flashcards",
+    argNames: ["subjectId"],
+  );
+
+  @override
+  Future<List<MasteryOverviewDto>> crateBridgeListMastery({
+    required PlatformInt64 subjectId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(subjectId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_mastery_overview_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeListMasteryConstMeta,
+        argValues: [subjectId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeListMasteryConstMeta =>
+      const TaskConstMeta(debugName: "list_mastery", argNames: ["subjectId"]);
+
+  @override
   Future<List<ProfileDto>> crateBridgeListProfiles() {
     return handler.executeNormal(
       NormalTask(
@@ -562,7 +761,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 18,
             port: port_,
           );
         },
@@ -598,7 +797,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 19,
             port: port_,
           );
         },
@@ -630,7 +829,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 20,
             port: port_,
           );
         },
@@ -660,7 +859,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 21,
             port: port_,
           );
         },
@@ -687,7 +886,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 22,
             port: port_,
           );
         },
@@ -706,6 +905,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "ocr_available", argNames: []);
 
   @override
+  Future<List<FlashcardProposalDto>> crateBridgePreviewFlashcards({
+    required PlatformInt64 subjectId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(subjectId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 23,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_flashcard_proposal_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgePreviewFlashcardsConstMeta,
+        argValues: [subjectId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgePreviewFlashcardsConstMeta =>
+      const TaskConstMeta(
+        debugName: "preview_flashcards",
+        argNames: ["subjectId"],
+      );
+
+  @override
   Future<PlanProposalDto> crateBridgePreviewPlan({
     required PlatformInt64 subjectId,
   }) {
@@ -717,7 +949,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 24,
             port: port_,
           );
         },
@@ -749,7 +981,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 25,
             port: port_,
           );
         },
@@ -781,7 +1013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 26,
             port: port_,
           );
         },
@@ -811,7 +1043,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 27,
             port: port_,
           );
         },
@@ -830,6 +1062,74 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "revert_replan", argNames: ["subjectId"]);
 
   @override
+  Future<ReviewResultDto> crateBridgeReviewFlashcard({
+    required PlatformInt64 id,
+    required PlatformInt64 quality,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(id, serializer);
+          sse_encode_i_64(quality, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_review_result_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeReviewFlashcardConstMeta,
+        argValues: [id, quality],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeReviewFlashcardConstMeta => const TaskConstMeta(
+    debugName: "review_flashcard",
+    argNames: ["id", "quality"],
+  );
+
+  @override
+  Future<PlatformInt64> crateBridgeSaveFlashcards({
+    required PlatformInt64 subjectId,
+    required List<FlashcardProposalDto> proposals,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(subjectId, serializer);
+          sse_encode_list_flashcard_proposal_dto(proposals, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeSaveFlashcardsConstMeta,
+        argValues: [subjectId, proposals],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeSaveFlashcardsConstMeta => const TaskConstMeta(
+    debugName: "save_flashcards",
+    argNames: ["subjectId", "proposals"],
+  );
+
+  @override
   Future<PlatformInt64> crateBridgeSavePlan({
     required PlatformInt64 subjectId,
     required List<PlannedSessionDto> sessions,
@@ -843,7 +1143,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 30,
             port: port_,
           );
         },
@@ -883,7 +1183,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 31,
             port: port_,
           );
         },
@@ -930,7 +1230,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 32,
             port: port_,
           );
         },
@@ -951,6 +1251,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<FlashcardDto> crateBridgeUpdateFlashcard({
+    required PlatformInt64 id,
+    required String question,
+    required String answer,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_i_64(id, serializer);
+          sse_encode_String(question, serializer);
+          sse_encode_String(answer, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_flashcard_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateBridgeUpdateFlashcardConstMeta,
+        argValues: [id, question, answer],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateBridgeUpdateFlashcardConstMeta => const TaskConstMeta(
+    debugName: "update_flashcard",
+    argNames: ["id", "question", "answer"],
+  );
+
+  @override
   Future<SubjectDto> crateBridgeUpdateSubject({
     required PlatformInt64 id,
     required String name,
@@ -966,7 +1302,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1002,7 +1338,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1085,6 +1421,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  FlashcardDto dco_decode_flashcard_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return FlashcardDto(
+      id: dco_decode_i_64(arr[0]),
+      topicId: dco_decode_i_64(arr[1]),
+      topicName: dco_decode_String(arr[2]),
+      subjectId: dco_decode_i_64(arr[3]),
+      question: dco_decode_String(arr[4]),
+      answer: dco_decode_String(arr[5]),
+      intervalDays: dco_decode_i_64(arr[6]),
+      repetitions: dco_decode_i_64(arr[7]),
+      easeFactor: dco_decode_f_64(arr[8]),
+      nextReview: dco_decode_opt_String(arr[9]),
+      lastReview: dco_decode_opt_String(arr[10]),
+      origin: dco_decode_String(arr[11]),
+    );
+  }
+
+  @protected
+  FlashcardProposalDto dco_decode_flashcard_proposal_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return FlashcardProposalDto(
+      topicId: dco_decode_i_64(arr[0]),
+      topicName: dco_decode_String(arr[1]),
+      question: dco_decode_String(arr[2]),
+      answer: dco_decode_String(arr[3]),
+      source: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
@@ -1114,6 +1487,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<DocumentDto> dco_decode_list_document_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_document_dto).toList();
+  }
+
+  @protected
+  List<FlashcardDto> dco_decode_list_flashcard_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_flashcard_dto).toList();
+  }
+
+  @protected
+  List<FlashcardProposalDto> dco_decode_list_flashcard_proposal_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_flashcard_proposal_dto)
+        .toList();
+  }
+
+  @protected
+  List<MasteryOverviewDto> dco_decode_list_mastery_overview_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_mastery_overview_dto).toList();
   }
 
   @protected
@@ -1150,6 +1545,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<TopicDto> dco_decode_list_topic_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_topic_dto).toList();
+  }
+
+  @protected
+  MasteryOverviewDto dco_decode_mastery_overview_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return MasteryOverviewDto(
+      topicId: dco_decode_i_64(arr[0]),
+      topicName: dco_decode_String(arr[1]),
+      mastery: dco_decode_f_64(arr[2]),
+      dueCards: dco_decode_i_64(arr[3]),
+      reviews: dco_decode_i_64(arr[4]),
+    );
   }
 
   @protected
@@ -1230,6 +1640,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ReplanResultDto(
       moved: dco_decode_i_64(arr[0]),
       message: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  ReviewResultDto dco_decode_review_result_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return ReviewResultDto(
+      flashcard: dco_decode_flashcard_dto(arr[0]),
+      quality: dco_decode_i_64(arr[1]),
+      mastery: dco_decode_f_64(arr[2]),
+      message: dco_decode_String(arr[3]),
     );
   }
 
@@ -1366,6 +1790,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  FlashcardDto sse_decode_flashcard_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_topicId = sse_decode_i_64(deserializer);
+    var var_topicName = sse_decode_String(deserializer);
+    var var_subjectId = sse_decode_i_64(deserializer);
+    var var_question = sse_decode_String(deserializer);
+    var var_answer = sse_decode_String(deserializer);
+    var var_intervalDays = sse_decode_i_64(deserializer);
+    var var_repetitions = sse_decode_i_64(deserializer);
+    var var_easeFactor = sse_decode_f_64(deserializer);
+    var var_nextReview = sse_decode_opt_String(deserializer);
+    var var_lastReview = sse_decode_opt_String(deserializer);
+    var var_origin = sse_decode_String(deserializer);
+    return FlashcardDto(
+      id: var_id,
+      topicId: var_topicId,
+      topicName: var_topicName,
+      subjectId: var_subjectId,
+      question: var_question,
+      answer: var_answer,
+      intervalDays: var_intervalDays,
+      repetitions: var_repetitions,
+      easeFactor: var_easeFactor,
+      nextReview: var_nextReview,
+      lastReview: var_lastReview,
+      origin: var_origin,
+    );
+  }
+
+  @protected
+  FlashcardProposalDto sse_decode_flashcard_proposal_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_topicId = sse_decode_i_64(deserializer);
+    var var_topicName = sse_decode_String(deserializer);
+    var var_question = sse_decode_String(deserializer);
+    var var_answer = sse_decode_String(deserializer);
+    var var_source = sse_decode_opt_String(deserializer);
+    return FlashcardProposalDto(
+      topicId: var_topicId,
+      topicName: var_topicName,
+      question: var_question,
+      answer: var_answer,
+      source: var_source,
+    );
+  }
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
@@ -1408,6 +1882,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <DocumentDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_document_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FlashcardDto> sse_decode_list_flashcard_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FlashcardDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_flashcard_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FlashcardProposalDto> sse_decode_list_flashcard_proposal_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FlashcardProposalDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_flashcard_proposal_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<MasteryOverviewDto> sse_decode_list_mastery_overview_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <MasteryOverviewDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_mastery_overview_dto(deserializer));
     }
     return ans_;
   }
@@ -1479,6 +1995,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ans_.add(sse_decode_topic_dto(deserializer));
     }
     return ans_;
+  }
+
+  @protected
+  MasteryOverviewDto sse_decode_mastery_overview_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_topicId = sse_decode_i_64(deserializer);
+    var var_topicName = sse_decode_String(deserializer);
+    var var_mastery = sse_decode_f_64(deserializer);
+    var var_dueCards = sse_decode_i_64(deserializer);
+    var var_reviews = sse_decode_i_64(deserializer);
+    return MasteryOverviewDto(
+      topicId: var_topicId,
+      topicName: var_topicName,
+      mastery: var_mastery,
+      dueCards: var_dueCards,
+      reviews: var_reviews,
+    );
   }
 
   @protected
@@ -1569,6 +2104,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_moved = sse_decode_i_64(deserializer);
     var var_message = sse_decode_String(deserializer);
     return ReplanResultDto(moved: var_moved, message: var_message);
+  }
+
+  @protected
+  ReviewResultDto sse_decode_review_result_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_flashcard = sse_decode_flashcard_dto(deserializer);
+    var var_quality = sse_decode_i_64(deserializer);
+    var var_mastery = sse_decode_f_64(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    return ReviewResultDto(
+      flashcard: var_flashcard,
+      quality: var_quality,
+      mastery: var_mastery,
+      message: var_message,
+    );
   }
 
   @protected
@@ -1713,6 +2263,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_flashcard_dto(FlashcardDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_i_64(self.topicId, serializer);
+    sse_encode_String(self.topicName, serializer);
+    sse_encode_i_64(self.subjectId, serializer);
+    sse_encode_String(self.question, serializer);
+    sse_encode_String(self.answer, serializer);
+    sse_encode_i_64(self.intervalDays, serializer);
+    sse_encode_i_64(self.repetitions, serializer);
+    sse_encode_f_64(self.easeFactor, serializer);
+    sse_encode_opt_String(self.nextReview, serializer);
+    sse_encode_opt_String(self.lastReview, serializer);
+    sse_encode_String(self.origin, serializer);
+  }
+
+  @protected
+  void sse_encode_flashcard_proposal_dto(
+    FlashcardProposalDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.topicId, serializer);
+    sse_encode_String(self.topicName, serializer);
+    sse_encode_String(self.question, serializer);
+    sse_encode_String(self.answer, serializer);
+    sse_encode_opt_String(self.source, serializer);
+  }
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
@@ -1751,6 +2331,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_document_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_flashcard_dto(
+    List<FlashcardDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_flashcard_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_flashcard_proposal_dto(
+    List<FlashcardProposalDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_flashcard_proposal_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_mastery_overview_dto(
+    List<MasteryOverviewDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_mastery_overview_dto(item, serializer);
     }
   }
 
@@ -1822,6 +2438,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     for (final item in self) {
       sse_encode_topic_dto(item, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_mastery_overview_dto(
+    MasteryOverviewDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.topicId, serializer);
+    sse_encode_String(self.topicName, serializer);
+    sse_encode_f_64(self.mastery, serializer);
+    sse_encode_i_64(self.dueCards, serializer);
+    sse_encode_i_64(self.reviews, serializer);
   }
 
   @protected
@@ -1900,6 +2529,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.moved, serializer);
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_review_result_dto(
+    ReviewResultDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_flashcard_dto(self.flashcard, serializer);
+    sse_encode_i_64(self.quality, serializer);
+    sse_encode_f_64(self.mastery, serializer);
     sse_encode_String(self.message, serializer);
   }
 

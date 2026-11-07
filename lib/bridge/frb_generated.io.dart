@@ -43,6 +43,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double dco_decode_f_64(dynamic raw);
 
   @protected
+  FlashcardDto dco_decode_flashcard_dto(dynamic raw);
+
+  @protected
+  FlashcardProposalDto dco_decode_flashcard_proposal_dto(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -53,6 +59,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<DocumentDto> dco_decode_list_document_dto(dynamic raw);
+
+  @protected
+  List<FlashcardDto> dco_decode_list_flashcard_dto(dynamic raw);
+
+  @protected
+  List<FlashcardProposalDto> dco_decode_list_flashcard_proposal_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<MasteryOverviewDto> dco_decode_list_mastery_overview_dto(dynamic raw);
 
   @protected
   List<PlannedSessionDto> dco_decode_list_planned_session_dto(dynamic raw);
@@ -71,6 +88,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TopicDto> dco_decode_list_topic_dto(dynamic raw);
+
+  @protected
+  MasteryOverviewDto dco_decode_mastery_overview_dto(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -92,6 +112,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ReplanResultDto dco_decode_replan_result_dto(dynamic raw);
+
+  @protected
+  ReviewResultDto dco_decode_review_result_dto(dynamic raw);
 
   @protected
   SessionDto dco_decode_session_dto(dynamic raw);
@@ -132,6 +155,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
+  FlashcardDto sse_decode_flashcard_dto(SseDeserializer deserializer);
+
+  @protected
+  FlashcardProposalDto sse_decode_flashcard_proposal_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
@@ -144,6 +175,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<DocumentDto> sse_decode_list_document_dto(SseDeserializer deserializer);
+
+  @protected
+  List<FlashcardDto> sse_decode_list_flashcard_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FlashcardProposalDto> sse_decode_list_flashcard_proposal_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<MasteryOverviewDto> sse_decode_list_mastery_overview_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<PlannedSessionDto> sse_decode_list_planned_session_dto(
@@ -164,6 +210,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<TopicDto> sse_decode_list_topic_dto(SseDeserializer deserializer);
+
+  @protected
+  MasteryOverviewDto sse_decode_mastery_overview_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -187,6 +238,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ReplanResultDto sse_decode_replan_result_dto(SseDeserializer deserializer);
+
+  @protected
+  ReviewResultDto sse_decode_review_result_dto(SseDeserializer deserializer);
 
   @protected
   SessionDto sse_decode_session_dto(SseDeserializer deserializer);
@@ -237,6 +291,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_flashcard_dto(FlashcardDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_flashcard_proposal_dto(
+    FlashcardProposalDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -254,6 +317,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_document_dto(
     List<DocumentDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_flashcard_dto(
+    List<FlashcardDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_flashcard_proposal_dto(
+    List<FlashcardProposalDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_mastery_overview_dto(
+    List<MasteryOverviewDto> self,
     SseSerializer serializer,
   );
 
@@ -291,6 +372,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_topic_dto(List<TopicDto> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_mastery_overview_dto(
+    MasteryOverviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -323,6 +410,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_replan_result_dto(
     ReplanResultDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_review_result_dto(
+    ReviewResultDto self,
     SseSerializer serializer,
   );
 

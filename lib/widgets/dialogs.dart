@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../bridge/bridge.dart';
+
 const List<String> subjectPalette = <String>[
   '#4F46E5',
   '#0891B2',
@@ -236,6 +238,119 @@ Future<TopicFormResult?> showTopicDialog(
                     onChanged: (value) => setState(() => difficulty = value),
                   ),
                 ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(onPressed: submit, child: const Text('Guardar')),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+typedef FlashcardFormResult = ({
+  int topicId,
+  String question,
+  String answer,
+});
+
+Future<FlashcardFormResult?> showFlashcardDialog(
+  BuildContext context, {
+  required List<TopicDto> topics,
+  int? initialTopicId,
+  String initialQuestion = '',
+  String initialAnswer = '',
+  String title = 'Nueva tarjeta',
+}) {
+  if (topics.isEmpty) {
+    return Future<FlashcardFormResult?>.value();
+  }
+  final questionController = TextEditingController(text: initialQuestion);
+  final answerController = TextEditingController(text: initialAnswer);
+  var topicId = initialTopicId != null &&
+          topics.any((topic) => topic.id == initialTopicId)
+      ? initialTopicId
+      : topics.first.id;
+  return showDialog<FlashcardFormResult>(
+    context: context,
+    builder: (context) {
+      String? questionError;
+      String? answerError;
+      return StatefulBuilder(
+        builder: (context, setState) {
+          void submit() {
+            final question = questionController.text.trim();
+            final answer = answerController.text.trim();
+            if (question.isEmpty || answer.isEmpty) {
+              setState(() {
+                questionError = question.isEmpty
+                    ? 'La pregunta no puede estar vacía'
+                    : null;
+                answerError = answer.isEmpty
+                    ? 'La respuesta no puede estar vacía'
+                    : null;
+              });
+              return;
+            }
+            Navigator.of(context).pop((
+              topicId: topicId,
+              question: question,
+              answer: answer,
+            ));
+          }
+
+          return AlertDialog(
+            title: Text(title),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      initialValue: topicId,
+                      decoration: const InputDecoration(labelText: 'Tema'),
+                      items: [
+                        for (final topic in topics)
+                          DropdownMenuItem<int>(
+                            value: topic.id,
+                            child: Text(topic.name),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => topicId = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: questionController,
+                      autofocus: true,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Pregunta',
+                        errorText: questionError,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: answerController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Respuesta',
+                        errorText: answerError,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             actions: [
