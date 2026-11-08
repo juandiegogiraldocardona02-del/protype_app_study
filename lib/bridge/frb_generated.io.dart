@@ -40,6 +40,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AvailabilityDayDto dco_decode_availability_day_dto(dynamic raw);
 
   @protected
+  BackupCountsDto dco_decode_backup_counts_dto(dynamic raw);
+
+  @protected
+  BackupPreviewDto dco_decode_backup_preview_dto(dynamic raw);
+
+  @protected
+  BackupRestoreDto dco_decode_backup_restore_dto(dynamic raw);
+
+  @protected
   BadgeDto dco_decode_badge_dto(dynamic raw);
 
   @protected
@@ -53,6 +62,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DocumentDto dco_decode_document_dto(dynamic raw);
+
+  @protected
+  ExportResultDto dco_decode_export_result_dto(dynamic raw);
 
   @protected
   double dco_decode_f_64(dynamic raw);
@@ -71,6 +83,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ImportOutcomeDto dco_decode_import_outcome_dto(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
 
   @protected
   List<AssistantSourceDto> dco_decode_list_assistant_source_dto(dynamic raw);
@@ -144,6 +159,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SessionDto dco_decode_session_dto(dynamic raw);
 
   @protected
+  StudyPlanImportDto dco_decode_study_plan_import_dto(dynamic raw);
+
+  @protected
+  StudyPlanPreviewDto dco_decode_study_plan_preview_dto(dynamic raw);
+
+  @protected
   SubjectDto dco_decode_subject_dto(dynamic raw);
 
   @protected
@@ -183,6 +204,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BackupCountsDto sse_decode_backup_counts_dto(SseDeserializer deserializer);
+
+  @protected
+  BackupPreviewDto sse_decode_backup_preview_dto(SseDeserializer deserializer);
+
+  @protected
+  BackupRestoreDto sse_decode_backup_restore_dto(SseDeserializer deserializer);
+
+  @protected
   BadgeDto sse_decode_badge_dto(SseDeserializer deserializer);
 
   @protected
@@ -198,6 +228,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DocumentDto sse_decode_document_dto(SseDeserializer deserializer);
+
+  @protected
+  ExportResultDto sse_decode_export_result_dto(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_64(SseDeserializer deserializer);
@@ -220,6 +253,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ImportOutcomeDto sse_decode_import_outcome_dto(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<AssistantSourceDto> sse_decode_list_assistant_source_dto(
@@ -307,6 +343,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SessionDto sse_decode_session_dto(SseDeserializer deserializer);
 
   @protected
+  StudyPlanImportDto sse_decode_study_plan_import_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  StudyPlanPreviewDto sse_decode_study_plan_preview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SubjectDto sse_decode_subject_dto(SseDeserializer deserializer);
 
   @protected
@@ -355,6 +401,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_backup_counts_dto(
+    BackupCountsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_backup_preview_dto(
+    BackupPreviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_backup_restore_dto(
+    BackupRestoreDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_badge_dto(BadgeDto self, SseSerializer serializer);
 
   @protected
@@ -374,6 +438,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_document_dto(DocumentDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_export_result_dto(
+    ExportResultDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_f_64(double self, SseSerializer serializer);
@@ -401,6 +471,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     ImportOutcomeDto self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_assistant_source_dto(
@@ -524,6 +597,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_session_dto(SessionDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_study_plan_import_dto(
+    StudyPlanImportDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_study_plan_preview_dto(
+    StudyPlanPreviewDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_subject_dto(SubjectDto self, SseSerializer serializer);

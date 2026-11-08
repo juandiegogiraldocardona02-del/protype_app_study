@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -225,6 +225,46 @@ Future<AssistantAnswerDto> askAssistant({
   documentsOnly: documentsOnly,
 );
 
+Future<ExportResultDto> exportStudyPlan({
+  required PlatformInt64 subjectId,
+  required String directory,
+}) => RustLib.instance.api.crateBridgeExportStudyPlan(
+  subjectId: subjectId,
+  directory: directory,
+);
+
+Future<StudyPlanPreviewDto> inspectStudyPlan({
+  required String path,
+  required PlatformInt64 profileId,
+}) => RustLib.instance.api.crateBridgeInspectStudyPlan(
+  path: path,
+  profileId: profileId,
+);
+
+Future<StudyPlanImportDto> importStudyPlan({
+  required String path,
+  required PlatformInt64 profileId,
+  required bool overwrite,
+}) => RustLib.instance.api.crateBridgeImportStudyPlan(
+  path: path,
+  profileId: profileId,
+  overwrite: overwrite,
+);
+
+Future<ExportResultDto> exportBackup({required String directory}) =>
+    RustLib.instance.api.crateBridgeExportBackup(directory: directory);
+
+Future<BackupPreviewDto> inspectBackup({required String path}) =>
+    RustLib.instance.api.crateBridgeInspectBackup(path: path);
+
+Future<BackupRestoreDto> restoreBackup({
+  required String path,
+  required bool overwrite,
+}) => RustLib.instance.api.crateBridgeRestoreBackup(
+  path: path,
+  overwrite: overwrite,
+);
+
 class AiStatusDto {
   final bool available;
   final String? modelPath;
@@ -316,6 +356,121 @@ class AvailabilityDayDto {
           minutes == other.minutes;
 }
 
+class BackupCountsDto {
+  final PlatformInt64 profiles;
+  final PlatformInt64 subjects;
+  final PlatformInt64 topics;
+  final PlatformInt64 documents;
+  final PlatformInt64 chunks;
+  final PlatformInt64 sessions;
+  final PlatformInt64 flashcards;
+  final PlatformInt64 reviews;
+  final PlatformInt64 assessments;
+  final PlatformInt64 xpEntries;
+  final PlatformInt64 changes;
+
+  const BackupCountsDto({
+    required this.profiles,
+    required this.subjects,
+    required this.topics,
+    required this.documents,
+    required this.chunks,
+    required this.sessions,
+    required this.flashcards,
+    required this.reviews,
+    required this.assessments,
+    required this.xpEntries,
+    required this.changes,
+  });
+
+  @override
+  int get hashCode =>
+      profiles.hashCode ^
+      subjects.hashCode ^
+      topics.hashCode ^
+      documents.hashCode ^
+      chunks.hashCode ^
+      sessions.hashCode ^
+      flashcards.hashCode ^
+      reviews.hashCode ^
+      assessments.hashCode ^
+      xpEntries.hashCode ^
+      changes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BackupCountsDto &&
+          runtimeType == other.runtimeType &&
+          profiles == other.profiles &&
+          subjects == other.subjects &&
+          topics == other.topics &&
+          documents == other.documents &&
+          chunks == other.chunks &&
+          sessions == other.sessions &&
+          flashcards == other.flashcards &&
+          reviews == other.reviews &&
+          assessments == other.assessments &&
+          xpEntries == other.xpEntries &&
+          changes == other.changes;
+}
+
+class BackupPreviewDto {
+  final List<String> profileNames;
+  final BackupCountsDto counts;
+  final bool conflict;
+  final String message;
+
+  const BackupPreviewDto({
+    required this.profileNames,
+    required this.counts,
+    required this.conflict,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      profileNames.hashCode ^
+      counts.hashCode ^
+      conflict.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BackupPreviewDto &&
+          runtimeType == other.runtimeType &&
+          profileNames == other.profileNames &&
+          counts == other.counts &&
+          conflict == other.conflict &&
+          message == other.message;
+}
+
+class BackupRestoreDto {
+  final BackupCountsDto counts;
+  final bool requiresConfirmation;
+  final String message;
+
+  const BackupRestoreDto({
+    required this.counts,
+    required this.requiresConfirmation,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      counts.hashCode ^ requiresConfirmation.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BackupRestoreDto &&
+          runtimeType == other.runtimeType &&
+          counts == other.counts &&
+          requiresConfirmation == other.requiresConfirmation &&
+          message == other.message;
+}
+
 class BadgeDto {
   final String code;
   final String title;
@@ -397,6 +552,41 @@ class DocumentDto {
           extractionStatus == other.extractionStatus &&
           extractionMessage == other.extractionMessage &&
           textChars == other.textChars;
+}
+
+class ExportResultDto {
+  final String path;
+  final PlatformInt64 bytes;
+  final String checksum;
+  final BackupCountsDto counts;
+  final String message;
+
+  const ExportResultDto({
+    required this.path,
+    required this.bytes,
+    required this.checksum,
+    required this.counts,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      path.hashCode ^
+      bytes.hashCode ^
+      checksum.hashCode ^
+      counts.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExportResultDto &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          bytes == other.bytes &&
+          checksum == other.checksum &&
+          counts == other.counts &&
+          message == other.message;
 }
 
 class FlashcardDto {
@@ -841,6 +1031,80 @@ class SessionDto {
           durationMin == other.durationMin &&
           state == other.state &&
           originalStart == other.originalStart;
+}
+
+class StudyPlanImportDto {
+  final PlatformInt64 subjectId;
+  final String subjectName;
+  final PlatformInt64 profileId;
+  final BackupCountsDto counts;
+  final bool requiresConfirmation;
+  final String message;
+
+  const StudyPlanImportDto({
+    required this.subjectId,
+    required this.subjectName,
+    required this.profileId,
+    required this.counts,
+    required this.requiresConfirmation,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      subjectId.hashCode ^
+      subjectName.hashCode ^
+      profileId.hashCode ^
+      counts.hashCode ^
+      requiresConfirmation.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StudyPlanImportDto &&
+          runtimeType == other.runtimeType &&
+          subjectId == other.subjectId &&
+          subjectName == other.subjectName &&
+          profileId == other.profileId &&
+          counts == other.counts &&
+          requiresConfirmation == other.requiresConfirmation &&
+          message == other.message;
+}
+
+class StudyPlanPreviewDto {
+  final String subjectName;
+  final String profileName;
+  final BackupCountsDto counts;
+  final bool conflict;
+  final String message;
+
+  const StudyPlanPreviewDto({
+    required this.subjectName,
+    required this.profileName,
+    required this.counts,
+    required this.conflict,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      subjectName.hashCode ^
+      profileName.hashCode ^
+      counts.hashCode ^
+      conflict.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StudyPlanPreviewDto &&
+          runtimeType == other.runtimeType &&
+          subjectName == other.subjectName &&
+          profileName == other.profileName &&
+          counts == other.counts &&
+          conflict == other.conflict &&
+          message == other.message;
 }
 
 class SubjectDto {

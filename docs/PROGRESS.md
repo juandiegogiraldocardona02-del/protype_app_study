@@ -2,7 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1–E6 completadas, E7 como siguiente paso.
+> Última actualización: Etapas E1–E7 completadas, E8 como siguiente paso.
 
 ## Repositorio
 
@@ -197,6 +197,42 @@ conocimiento general) y RES-004 (LLM local GGUF Q4_K_M).
       conocimiento general).
 - [x] Build Windows y arranque real verificados.
 
+## Etapa E7 — COMPLETADA ✅
+
+Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
+
+- [x] Dependencias `zip 2` + `flate2` (backend Rust puro, sin red). El paquete
+      es un ZIP con `manifest.json`, `integrity.json` y los documentos.
+- [x] Rust `backup`: exportación de una asignatura completa (temas, jerarquía,
+      documentos y fragmentos, archivos originales, sesiones, tarjetas,
+      repasos, evaluaciones, ajustes de plan, disponibilidad, XP y cambios).
+- [x] Copia global con todos los perfiles, configuración, rachas, asignaturas,
+      documentos, estadísticas e historial.
+- [x] Integridad SHA-256 del manifiesto y de cada documento empaquetado; la
+      importación/restauración rechaza paquetes dañados sin modificar la base
+      de datos.
+- [x] Previsualización con conteos y detección de conflictos. Reemplazar una
+      asignatura o todos los perfiles exige confirmación explícita; si se
+      cancela, no se modifica nada (transacciones).
+- [x] Remapeo de IDs antiguos a nuevos al importar/restaurar, conservando
+      dominio, programación SRS, historial y relaciones entre temas.
+- [x] Documentos extraídos a una carpeta gestionada
+      (`<carpeta de la BD>/documents/import-*` o `restore-*`), conservando los
+      fragmentos ya extraídos para no repetir OCR.
+- [x] API FFI: `exportStudyPlan`, `inspectStudyPlan`, `importStudyPlan`,
+      `exportBackup`, `inspectBackup`, `restoreBackup` y DTOs asociados;
+      bindings regenerados.
+- [x] Flutter: panel “Copias de seguridad” en Configuración (exportar/restaurar
+      copia global e importar asignatura) y acción “Exportar .studyplan” en el
+      espacio de cada asignatura. Los proveedores se invalidan tras importar o
+      restaurar.
+- [x] Pruebas Rust: 49 verdes + 3 ignoradas; 6 pruebas nuevas de backup
+      (ida y vuelta de asignatura entre dispositivos, conflicto/reemplazo,
+      copia global, restauración con conflicto y paquete corrupto).
+- [x] Pruebas Flutter: 24 verdes (4 nuevas de E7 con selector de archivos
+      simulado).
+- [x] Build Windows y arranque real verificados.
+
 ## Decisiones de implementación tomadas
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
   disponible. Si no, la imagen se importa igualmente y se avisa de que no se
@@ -265,9 +301,32 @@ conocimiento general) y RES-004 (LLM local GGUF Q4_K_M).
 - **Rendimiento:** Qwen2.5-1.5B Q4_K_M respondió en ~4,4 s en el hardware de
   desarrollo, por debajo del objetivo de 15 s (NFR-002). La primera consulta
   incluye la carga del modelo; las siguientes reutilizan la caché.
+- **Formato portable (E7):** `.studyplan` y `.studybackup` son ZIP con
+  `manifest.json` versionado. El manifiesto no guarda rutas absolutas de
+  documentos; al importar se extraen a una carpeta gestionada junto a la BD.
+  Los IDs del origen se remapean a los nuevos para no colisionar.
+- **Integridad (E7):** `integrity.json` incluye el SHA-256 del manifiesto y de
+  cada archivo empaquetado. Un byte alterado en el manifiesto o en un documento
+  aborta la operación antes de escribir en la base de datos.
+- **Conflictos (E7):** importar una asignatura con el mismo nombre en el perfil
+  destino, o restaurar una copia global sobre un dispositivo con perfiles,
+  devuelve una previsualización con `requires_confirmation`. La UI pide
+  confirmación y solo entonces se reemplaza, dentro de una transacción.
+- **Documentos en copias (E7):** se conservan los fragmentos extraídos y los
+  archivos originales. Si un archivo ya no existe en el origen, la copia se
+  genera igualmente con los fragmentos y el documento queda sin archivo local.
 - **Build en Windows con Smart App Control:** los binarios generados dentro de
   OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
   y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit.
+
+## Verificación de E7 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 49 pruebas verdes, 3 ignoradas (OCR, PDF y modelo local).
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 24 pruebas verdes.
+- `flutter build windows --debug`: correcto.
+- Arranque real del `.exe` durante 10 s: proceso vivo.
 
 ## Verificación de E6 (resultados)
 
@@ -330,5 +389,4 @@ conocimiento general) y RES-004 (LLM local GGUF Q4_K_M).
 
 ## Pendiente por etapas (según §12)
 
-- E7: `.studyplan` y copias globales (FR-002/019).
 - E8: audio whisper.cpp y evaluaciones automáticas (FR-010, RES-005).

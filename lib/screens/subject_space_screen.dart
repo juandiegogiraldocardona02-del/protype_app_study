@@ -1,19 +1,49 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bridge/bridge.dart';
+import '../state/providers.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/document_library.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/subject_agenda.dart';
 import '../widgets/subject_progress.dart';
 
-class SubjectSpaceScreen extends StatelessWidget {
+class SubjectSpaceScreen extends ConsumerWidget {
   const SubjectSpaceScreen({super.key, required this.subject});
 
   final SubjectDto subject;
 
+  Future<void> _export(BuildContext context, WidgetRef ref) async {
+    final directory = await FilePicker.getDirectoryPath(
+      dialogTitle: 'Elegir carpeta para exportar la asignatura',
+    );
+    if (directory == null || !context.mounted) {
+      return;
+    }
+    try {
+      final result = await ref
+          .read(backupActionsProvider)
+          .exportStudyPlan(subject.id, directory);
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${result.message} Archivo: ${result.path}')),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo exportar: $error')),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(subject.color);
     return DefaultTabController(
       length: 6,
@@ -36,6 +66,26 @@ class SubjectSpaceScreen extends StatelessWidget {
               ),
             ],
           ),
+          actions: [
+            PopupMenuButton<String>(
+              tooltip: 'Acciones de la asignatura',
+              onSelected: (value) {
+                if (value == 'export') {
+                  _export(context, ref);
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'export',
+                  child: ListTile(
+                    leading: Icon(Icons.save_alt_outlined),
+                    title: Text('Exportar .studyplan'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ],
           bottom: const TabBar(
             isScrollable: true,
             tabs: [

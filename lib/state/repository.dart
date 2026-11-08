@@ -6,8 +6,12 @@ export '../bridge/bridge.dart'
         AssistantAnswerDto,
         AssistantSourceDto,
         AvailabilityDayDto,
+        BackupCountsDto,
+        BackupPreviewDto,
+        BackupRestoreDto,
         BadgeDto,
         DocumentDto,
+        ExportResultDto,
         FlashcardDto,
         FlashcardProposalDto,
         GamificationSummaryDto,
@@ -20,6 +24,8 @@ export '../bridge/bridge.dart'
         ReplanResultDto,
         ReviewResultDto,
         SessionDto,
+        StudyPlanImportDto,
+        StudyPlanPreviewDto,
         SubjectDto,
         TopicDto,
         XpConfigDto;
@@ -122,4 +128,20 @@ abstract class StudyRepository {
     String question,
     bool documentsOnly,
   );
+
+  Future<ExportResultDto> exportStudyPlan(int subjectId, String directory);
+
+  Future<StudyPlanPreviewDto> inspectStudyPlan(String path, int profileId);
+
+  Future<StudyPlanImportDto> importStudyPlan(
+    String path,
+    int profileId,
+    bool overwrite,
+  );
+
+  Future<ExportResultDto> exportBackup(String directory);
+
+  Future<BackupPreviewDto> inspectBackup(String path);
+
+  Future<BackupRestoreDto> restoreBackup(String path, bool overwrite);
 }

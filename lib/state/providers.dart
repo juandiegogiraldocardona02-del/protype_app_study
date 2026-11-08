@@ -423,3 +423,63 @@ class AssistantActions {
 final assistantActionsProvider = Provider<AssistantActions>(
   (ref) => AssistantActions(ref),
 );
+
+class BackupActions {
+  BackupActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<ExportResultDto> exportStudyPlan(int subjectId, String directory) =>
+      _repo.exportStudyPlan(subjectId, directory);
+
+  Future<StudyPlanPreviewDto> inspectStudyPlan(String path, int profileId) =>
+      _repo.inspectStudyPlan(path, profileId);
+
+  Future<StudyPlanImportDto> importStudyPlan(
+    String path,
+    int profileId,
+    bool overwrite,
+  ) async {
+    final result = await _repo.importStudyPlan(path, profileId, overwrite);
+    if (!result.requiresConfirmation) {
+      _ref.invalidate(subjectsProvider);
+      _ref.invalidate(sessionsProvider);
+    }
+    return result;
+  }
+
+  Future<ExportResultDto> exportBackup(String directory) =>
+      _repo.exportBackup(directory);
+
+  Future<BackupPreviewDto> inspectBackup(String path) =>
+      _repo.inspectBackup(path);
+
+  Future<BackupRestoreDto> restoreBackup(String path, bool overwrite) async {
+    final result = await _repo.restoreBackup(path, overwrite);
+    if (!result.requiresConfirmation) {
+      _ref.read(selectedProfileIdProvider.notifier).select(null);
+      _invalidateAll();
+    }
+    return result;
+  }
+
+  void _invalidateAll() {
+    _ref.invalidate(profilesProvider);
+    _ref.invalidate(subjectsProvider);
+    _ref.invalidate(documentsProvider);
+    _ref.invalidate(topicsProvider);
+    _ref.invalidate(planSettingsProvider);
+    _ref.invalidate(sessionsProvider);
+    _ref.invalidate(flashcardsProvider);
+    _ref.invalidate(dueFlashcardsProvider);
+    _ref.invalidate(masteryProvider);
+    _ref.invalidate(gamificationProvider);
+    _ref.invalidate(xpConfigProvider);
+  }
+}
+
+final backupActionsProvider = Provider<BackupActions>(
+  (ref) => BackupActions(ref),
+);

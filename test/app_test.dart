@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,7 @@ import 'package:study_planner/app.dart';
 import 'package:study_planner/state/providers.dart';
 import 'package:study_planner/state/repository.dart';
 
+import 'support/fake_file_picker.dart';
 import 'support/fake_repository.dart';
 
 Future<void> _pumpApp(
@@ -450,5 +452,112 @@ void main() {
 
     expect(find.text('Conocimiento general del modelo'), findsOneWidget);
     expect(repository.lastAssistantDocumentsOnly, isFalse);
+  });
+
+  testWidgets('exporta una copia global desde configuración', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    final picker = FakeFilePicker()..directoryPath = r'C:\copias';
+    FilePickerPlatform.instance = picker;
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Configuración'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Exportar copia global'));
+    await tester.tap(find.text('Exportar copia global'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastBackupDirectory, r'C:\copias');
+    expect(find.textContaining('Copia global exportada'), findsOneWidget);
+  });
+
+  testWidgets('restaura una copia global tras confirmar el reemplazo', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.backupPreview = const BackupPreviewDto(
+      profileNames: ['Ana'],
+      counts: BackupCountsDto(
+        profiles: 1,
+        subjects: 1,
+        topics: 0,
+        documents: 0,
+        chunks: 0,
+        sessions: 0,
+        flashcards: 0,
+        reviews: 0,
+        assessments: 0,
+        xpEntries: 0,
+        changes: 0,
+      ),
+      conflict: true,
+      message: 'Ya existen perfiles en este dispositivo.',
+    );
+    final picker = FakeFilePicker()
+      ..addFile(r'C:\copias\copia-global.studybackup');
+    FilePickerPlatform.instance = picker;
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Configuración'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Restaurar copia global'));
+    await tester.tap(find.text('Restaurar copia global'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Ya existen perfiles en este dispositivo.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Reemplazar todo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastRestoreOverwrite, isTrue);
+    expect(find.textContaining('Copia global restaurada'), findsOneWidget);
+  });
+
+  testWidgets('importa una asignatura .studyplan en el perfil activo', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    final picker = FakeFilePicker()..addFile(r'C:\copias\Biologia.studyplan');
+    FilePickerPlatform.instance = picker;
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Configuración'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Importar asignatura'));
+    await tester.tap(find.text('Importar asignatura'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Importar asignatura'), findsWidgets);
+    await tester.tap(find.text('Importar').last);
+    await tester.pumpAndSettle();
+
+    expect(repository.lastImportProfileId, 1);
+    expect(repository.lastImportOverwrite, isFalse);
+    expect(find.textContaining('Asignatura importada'), findsOneWidget);
+    expect(await repository.listSubjects(1), hasLength(1));
+  });
+
+  testWidgets('exporta una asignatura desde su espacio', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    final picker = FakeFilePicker()..directoryPath = r'C:\copias';
+    FilePickerPlatform.instance = picker;
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Acciones de la asignatura'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exportar .studyplan'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastExportSubjectId, 1);
+    expect(repository.lastExportDirectory, r'C:\copias');
+    expect(find.textContaining('Asignatura exportada'), findsOneWidget);
   });
 }

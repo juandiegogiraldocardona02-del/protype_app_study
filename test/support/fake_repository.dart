@@ -35,6 +35,30 @@ class FakeStudyRepository implements StudyRepository {
   int? lastAssistantSubjectId;
   String? lastAssistantQuestion;
   bool? lastAssistantDocumentsOnly;
+  BackupCountsDto backupCounts = const BackupCountsDto(
+    profiles: 1,
+    subjects: 1,
+    topics: 2,
+    documents: 1,
+    chunks: 3,
+    sessions: 4,
+    flashcards: 5,
+    reviews: 6,
+    assessments: 0,
+    xpEntries: 2,
+    changes: 3,
+  );
+  StudyPlanPreviewDto? studyPlanPreview;
+  StudyPlanImportDto? studyPlanImportResult;
+  BackupPreviewDto? backupPreview;
+  BackupRestoreDto? backupRestoreResult;
+  int? lastExportSubjectId;
+  String? lastExportDirectory;
+  int? lastImportProfileId;
+  bool? lastImportOverwrite;
+  String? lastBackupDirectory;
+  String? lastInspectPath;
+  bool? lastRestoreOverwrite;
 
   ProfileDto addProfile(String name) {
     final profile = ProfileDto(
@@ -926,6 +950,111 @@ class FakeStudyRepository implements StudyRepository {
               ),
             ]
           : const [],
+    );
+  }
+
+  @override
+  Future<ExportResultDto> exportStudyPlan(
+    int subjectId,
+    String directory,
+  ) async {
+    lastExportSubjectId = subjectId;
+    lastExportDirectory = directory;
+    final subject = _findSubject(subjectId);
+    return ExportResultDto(
+      path: '$directory/${subject?.name ?? 'asignatura'}.studyplan',
+      bytes: 2048,
+      checksum: 'sha256-prueba',
+      counts: backupCounts,
+      message: 'Asignatura exportada.',
+    );
+  }
+
+  @override
+  Future<StudyPlanPreviewDto> inspectStudyPlan(
+    String path,
+    int profileId,
+  ) async {
+    lastInspectPath = path;
+    return studyPlanPreview ??
+        StudyPlanPreviewDto(
+          subjectName: 'Asignatura importada',
+          profileName: _profiles[profileId]?.name ?? 'Perfil',
+          counts: backupCounts,
+          conflict: false,
+          message: 'Listo para importar.',
+        );
+  }
+
+  @override
+  Future<StudyPlanImportDto> importStudyPlan(
+    String path,
+    int profileId,
+    bool overwrite,
+  ) async {
+    lastInspectPath = path;
+    lastImportProfileId = profileId;
+    lastImportOverwrite = overwrite;
+    final configured = studyPlanImportResult;
+    if (configured != null) {
+      return configured;
+    }
+    final created = addSubject(
+      profileId,
+      'Asignatura importada',
+      '#4F46E5',
+    );
+    return StudyPlanImportDto(
+      subjectId: created.id,
+      subjectName: created.name,
+      profileId: profileId,
+      counts: backupCounts,
+      requiresConfirmation: false,
+      message: 'Asignatura importada correctamente.',
+    );
+  }
+
+  @override
+  Future<ExportResultDto> exportBackup(String directory) async {
+    lastBackupDirectory = directory;
+    return ExportResultDto(
+      path: '$directory/copia-global.studybackup',
+      bytes: 4096,
+      checksum: 'sha256-copia',
+      counts: backupCounts,
+      message: 'Copia global exportada.',
+    );
+  }
+
+  @override
+  Future<BackupPreviewDto> inspectBackup(String path) async {
+    lastInspectPath = path;
+    return backupPreview ??
+        BackupPreviewDto(
+          profileNames: _profiles.values
+              .map((profile) => profile.name)
+              .toList(),
+          counts: backupCounts,
+          conflict: false,
+          message: 'Listo para restaurar la copia global.',
+        );
+  }
+
+  @override
+  Future<BackupRestoreDto> restoreBackup(
+    String path,
+    bool overwrite,
+  ) async {
+    lastInspectPath = path;
+    lastRestoreOverwrite = overwrite;
+    final configured = backupRestoreResult;
+    if (configured != null) {
+      return configured;
+    }
+    return BackupRestoreDto(
+      counts: backupCounts,
+      requiresConfirmation: false,
+      message: 'Copia global restaurada correctamente.',
     );
   }
 

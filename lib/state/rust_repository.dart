@@ -188,4 +188,35 @@ class RustStudyRepository implements StudyRepository {
     question: question,
     documentsOnly: documentsOnly,
   );
+
+  @override
+  Future<ExportResultDto> exportStudyPlan(int subjectId, String directory) =>
+      rust.exportStudyPlan(subjectId: subjectId, directory: directory);
+
+  @override
+  Future<StudyPlanPreviewDto> inspectStudyPlan(String path, int profileId) =>
+      rust.inspectStudyPlan(path: path, profileId: profileId);
+
+  @override
+  Future<StudyPlanImportDto> importStudyPlan(
+    String path,
+    int profileId,
+    bool overwrite,
+  ) => rust.importStudyPlan(
+    path: path,
+    profileId: profileId,
+    overwrite: overwrite,
+  );
+
+  @override
+  Future<ExportResultDto> exportBackup(String directory) =>
+      rust.exportBackup(directory: directory);
+
+  @override
+  Future<BackupPreviewDto> inspectBackup(String path) =>
+      rust.inspectBackup(path: path);
+
+  @override
+  Future<BackupRestoreDto> restoreBackup(String path, bool overwrite) =>
+      rust.restoreBackup(path: path, overwrite: overwrite);
 }

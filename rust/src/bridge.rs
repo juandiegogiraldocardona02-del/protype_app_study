@@ -201,6 +201,64 @@ pub struct AssistantAnswerDto {
     pub sources: Vec<AssistantSourceDto>,
 }
 
+#[derive(Debug, Clone)]
+pub struct BackupCountsDto {
+    pub profiles: i64,
+    pub subjects: i64,
+    pub topics: i64,
+    pub documents: i64,
+    pub chunks: i64,
+    pub sessions: i64,
+    pub flashcards: i64,
+    pub reviews: i64,
+    pub assessments: i64,
+    pub xp_entries: i64,
+    pub changes: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportResultDto {
+    pub path: String,
+    pub bytes: i64,
+    pub checksum: String,
+    pub counts: BackupCountsDto,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct StudyPlanPreviewDto {
+    pub subject_name: String,
+    pub profile_name: String,
+    pub counts: BackupCountsDto,
+    pub conflict: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct StudyPlanImportDto {
+    pub subject_id: i64,
+    pub subject_name: String,
+    pub profile_id: i64,
+    pub counts: BackupCountsDto,
+    pub requires_confirmation: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct BackupPreviewDto {
+    pub profile_names: Vec<String>,
+    pub counts: BackupCountsDto,
+    pub conflict: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct BackupRestoreDto {
+    pub counts: BackupCountsDto,
+    pub requires_confirmation: bool,
+    pub message: String,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -473,6 +531,82 @@ impl From<crate::ai::AssistantAnswer> for AssistantAnswerDto {
     }
 }
 
+impl From<crate::backup::BackupCounts> for BackupCountsDto {
+    fn from(value: crate::backup::BackupCounts) -> Self {
+        Self {
+            profiles: value.profiles,
+            subjects: value.subjects,
+            topics: value.topics,
+            documents: value.documents,
+            chunks: value.chunks,
+            sessions: value.sessions,
+            flashcards: value.flashcards,
+            reviews: value.reviews,
+            assessments: value.assessments,
+            xp_entries: value.xp_entries,
+            changes: value.changes,
+        }
+    }
+}
+
+impl From<crate::backup::ExportResult> for ExportResultDto {
+    fn from(value: crate::backup::ExportResult) -> Self {
+        Self {
+            path: value.path,
+            bytes: value.bytes,
+            checksum: value.checksum,
+            counts: value.counts.into(),
+            message: value.message,
+        }
+    }
+}
+
+impl From<crate::backup::StudyPlanPreview> for StudyPlanPreviewDto {
+    fn from(value: crate::backup::StudyPlanPreview) -> Self {
+        Self {
+            subject_name: value.subject_name,
+            profile_name: value.profile_name,
+            counts: value.counts.into(),
+            conflict: value.conflict,
+            message: value.message,
+        }
+    }
+}
+
+impl From<crate::backup::StudyPlanImport> for StudyPlanImportDto {
+    fn from(value: crate::backup::StudyPlanImport) -> Self {
+        Self {
+            subject_id: value.subject_id,
+            subject_name: value.subject_name,
+            profile_id: value.profile_id,
+            counts: value.counts.into(),
+            requires_confirmation: value.requires_confirmation,
+            message: value.message,
+        }
+    }
+}
+
+impl From<crate::backup::BackupPreview> for BackupPreviewDto {
+    fn from(value: crate::backup::BackupPreview) -> Self {
+        Self {
+            profile_names: value.profile_names,
+            counts: value.counts.into(),
+            conflict: value.conflict,
+            message: value.message,
+        }
+    }
+}
+
+impl From<crate::backup::BackupRestore> for BackupRestoreDto {
+    fn from(value: crate::backup::BackupRestore) -> Self {
+        Self {
+            counts: value.counts.into(),
+            requires_confirmation: value.requires_confirmation,
+            message: value.message,
+        }
+    }
+}
+
 #[flutter_rust_bridge::frb(sync)]
 pub fn initialize_database(path: String) -> anyhow::Result<()> {
     db::initialize(&path)?;
@@ -732,4 +866,42 @@ pub fn ask_assistant(
         crate::ai::ask_with_db(database, subject_id, &question, documents_only)
     })?;
     Ok(answer.into())
+}
+
+pub fn export_study_plan(subject_id: i64, directory: String) -> anyhow::Result<ExportResultDto> {
+    let result =
+        db::with_db(|database| crate::backup::export_study_plan(database, subject_id, &directory))?;
+    Ok(result.into())
+}
+
+pub fn inspect_study_plan(path: String, profile_id: i64) -> anyhow::Result<StudyPlanPreviewDto> {
+    let preview =
+        db::with_db(|database| crate::backup::inspect_study_plan(database, &path, profile_id))?;
+    Ok(preview.into())
+}
+
+pub fn import_study_plan(
+    path: String,
+    profile_id: i64,
+    overwrite: bool,
+) -> anyhow::Result<StudyPlanImportDto> {
+    let result = db::with_db(|database| {
+        crate::backup::import_study_plan(database, &path, profile_id, overwrite)
+    })?;
+    Ok(result.into())
+}
+
+pub fn export_backup(directory: String) -> anyhow::Result<ExportResultDto> {
+    let result = db::with_db(|database| crate::backup::export_backup(database, &directory))?;
+    Ok(result.into())
+}
+
+pub fn inspect_backup(path: String) -> anyhow::Result<BackupPreviewDto> {
+    let preview = db::with_db(|database| crate::backup::inspect_backup(database, &path))?;
+    Ok(preview.into())
+}
+
+pub fn restore_backup(path: String, overwrite: bool) -> anyhow::Result<BackupRestoreDto> {
+    let result = db::with_db(|database| crate::backup::restore_backup(database, &path, overwrite))?;
+    Ok(result.into())
 }

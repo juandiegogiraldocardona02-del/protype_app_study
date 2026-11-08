@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import '../widgets/backup_panel.dart';
 import '../widgets/dialogs.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -151,6 +152,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 32),
+            const BackupPanel(),
+            const SizedBox(height: 32),
             Text('Acerca de', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             const Card(
@@ -173,11 +176,11 @@ class SettingsScreen extends ConsumerWidget {
                   Divider(height: 1),
                   ListTile(
                     leading: Icon(Icons.info_outline),
-                    title: Text('Versión 1.0.0 · Etapa E1'),
+                    title: Text('Versión 1.0.0 · Etapa E7'),
                     subtitle: Text(
-                      'Perfiles, asignaturas y persistencia SQLite. Las '
-                      'siguientes etapas añaden documentos, planificación, '
-                      'repaso, gamificación y asistente local.',
+                      'Perfiles, documentos, planificación, repaso, '
+                      'gamificación, asistente local y copias de seguridad '
+                      'verificables.',
                     ),
                   ),
                 ],

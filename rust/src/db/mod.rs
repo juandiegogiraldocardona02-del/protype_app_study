@@ -58,6 +58,14 @@ impl Database {
         Self::from_connection(Connection::open_in_memory()?)
     }
 
+    pub(crate) fn connection(&self) -> &Connection {
+        &self.conn
+    }
+
+    pub(crate) fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.conn
+    }
+
     fn from_connection(mut conn: Connection) -> CoreResult<Self> {
         conn.execute_batch(
             "PRAGMA foreign_keys = ON;
@@ -1482,6 +1490,7 @@ fn apply_migrations(conn: &mut Connection) -> CoreResult<()> {
 
 static DATABASE: OnceLock<Mutex<Database>> = OnceLock::new();
 static MODELS_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
+static DATA_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
 
 pub fn initialize(path: &str) -> CoreResult<()> {
     if DATABASE.get().is_some() {
@@ -1490,6 +1499,7 @@ pub fn initialize(path: &str) -> CoreResult<()> {
     let database = Database::open(path)?;
     if let Some(parent) = Path::new(path).parent() {
         let _ = MODELS_DIRECTORY.set(parent.join("models"));
+        let _ = DATA_DIRECTORY.set(parent.to_path_buf());
     }
     DATABASE
         .set(Mutex::new(database))
@@ -1498,6 +1508,10 @@ pub fn initialize(path: &str) -> CoreResult<()> {
 
 pub fn models_directory() -> Option<PathBuf> {
     MODELS_DIRECTORY.get().cloned()
+}
+
+pub fn data_directory() -> Option<PathBuf> {
+    DATA_DIRECTORY.get().cloned()
 }
 
 pub fn with_db<T>(f: impl FnOnce(&mut Database) -> CoreResult<T>) -> CoreResult<T> {
