@@ -174,4 +174,18 @@ class RustStudyRepository implements StudyRepository {
   @override
   Future<GamificationSummaryDto> getGamificationSummary(int profileId) =>
       rust.getGamificationSummary(profileId: profileId);
+
+  @override
+  Future<AiStatusDto> getAiStatus() async => rust.getAiStatus();
+
+  @override
+  Future<AssistantAnswerDto> askAssistant(
+    int subjectId,
+    String question,
+    bool documentsOnly,
+  ) => rust.askAssistant(
+    subjectId: subjectId,
+    question: question,
+    documentsOnly: documentsOnly,
+  );
 }

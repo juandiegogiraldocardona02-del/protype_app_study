@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -212,6 +212,91 @@ Future<GamificationSummaryDto> getGamificationSummary({
 }) => RustLib.instance.api.crateBridgeGetGamificationSummary(
   profileId: profileId,
 );
+
+AiStatusDto getAiStatus() => RustLib.instance.api.crateBridgeGetAiStatus();
+
+Future<AssistantAnswerDto> askAssistant({
+  required PlatformInt64 subjectId,
+  required String question,
+  required bool documentsOnly,
+}) => RustLib.instance.api.crateBridgeAskAssistant(
+  subjectId: subjectId,
+  question: question,
+  documentsOnly: documentsOnly,
+);
+
+class AiStatusDto {
+  final bool available;
+  final String? modelPath;
+  final String modelsDir;
+  final String message;
+
+  const AiStatusDto({
+    required this.available,
+    this.modelPath,
+    required this.modelsDir,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      available.hashCode ^
+      modelPath.hashCode ^
+      modelsDir.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AiStatusDto &&
+          runtimeType == other.runtimeType &&
+          available == other.available &&
+          modelPath == other.modelPath &&
+          modelsDir == other.modelsDir &&
+          message == other.message;
+}
+
+class AssistantAnswerDto {
+  final String answer;
+  final String origin;
+  final List<AssistantSourceDto> sources;
+
+  const AssistantAnswerDto({
+    required this.answer,
+    required this.origin,
+    required this.sources,
+  });
+
+  @override
+  int get hashCode => answer.hashCode ^ origin.hashCode ^ sources.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssistantAnswerDto &&
+          runtimeType == other.runtimeType &&
+          answer == other.answer &&
+          origin == other.origin &&
+          sources == other.sources;
+}
+
+class AssistantSourceDto {
+  final String label;
+  final String excerpt;
+
+  const AssistantSourceDto({required this.label, required this.excerpt});
+
+  @override
+  int get hashCode => label.hashCode ^ excerpt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssistantSourceDto &&
+          runtimeType == other.runtimeType &&
+          label == other.label &&
+          excerpt == other.excerpt;
+}
 
 class AvailabilityDayDto {
   final PlatformInt64 weekday;

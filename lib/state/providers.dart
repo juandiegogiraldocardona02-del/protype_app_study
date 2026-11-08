@@ -399,3 +399,27 @@ class GamificationActions {
 final gamificationActionsProvider = Provider<GamificationActions>(
   (ref) => GamificationActions(ref),
 );
+
+final aiStatusProvider = FutureProvider<AiStatusDto>((ref) {
+  return ref.watch(repositoryProvider).getAiStatus();
+});
+
+class AssistantActions {
+  AssistantActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<AssistantAnswerDto> ask(
+    int subjectId,
+    String question,
+    bool documentsOnly,
+  ) {
+    return _repo.askAssistant(subjectId, question, documentsOnly);
+  }
+}
+
+final assistantActionsProvider = Provider<AssistantActions>(
+  (ref) => AssistantActions(ref),
+);

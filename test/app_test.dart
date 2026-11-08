@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:study_planner/app.dart';
 import 'package:study_planner/state/providers.dart';
+import 'package:study_planner/state/repository.dart';
 
 import 'support/fake_repository.dart';
 
@@ -387,5 +388,67 @@ void main() {
 
     expect(find.textContaining('Configuración guardada'), findsOneWidget);
     expect((await repository.getXpConfig(1)).readSection, 33);
+  });
+
+  testWidgets('el asistente avisa cuando no hay modelo local', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.aiStatus = const AiStatusDto(
+      available: false,
+      modelsDir: '/datos/models',
+      message: 'No se encontró ningún modelo .gguf.',
+    );
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Asistente IA').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Modelo local no instalado'), findsOneWidget);
+    expect(find.textContaining('/datos/models'), findsOneWidget);
+  });
+
+  testWidgets('el asistente responde citando los documentos', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addDocument(1, name: 'apuntes.txt');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Asistente IA').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byType(TextField),
+      '¿Qué función tiene la mitocondria?',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Preguntar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fuente: documentos de la asignatura'), findsOneWidget);
+    expect(find.text('apuntes.txt · Tema 1'), findsOneWidget);
+    expect(
+      find.textContaining('¿Qué función tiene la mitocondria?'),
+      findsWidgets,
+    );
+    expect(repository.lastAssistantDocumentsOnly, isTrue);
+  });
+
+  testWidgets('el asistente permite usar conocimiento general', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Asistente IA').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '¿Qué es una célula?');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Preguntar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Conocimiento general del modelo'), findsOneWidget);
+    expect(repository.lastAssistantDocumentsOnly, isFalse);
   });
 }

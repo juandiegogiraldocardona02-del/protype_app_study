@@ -2,7 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1–E5 completadas, E6 como siguiente paso.
+> Última actualización: Etapas E1–E6 completadas, E7 como siguiente paso.
 
 ## Repositorio
 
@@ -21,6 +21,19 @@
   (en `C:\Users\juand\.cargo\bin`).
 - Tesseract: **opcional**, no instalado por defecto. El OCR se activa si el
   binario `tesseract` está en PATH o en `TESSERACT_PATH`.
+- LLVM/libclang 23.1.5 en `C:\Program Files\LLVM\bin` (necesario para compilar
+  `llama-cpp-sys-2` con bindgen). Añadir al PATH y definir
+  `LIBCLANG_PATH=C:\Program Files\LLVM\bin` antes de compilar Rust.
+- **Smart App Control** bloquea binarios sin firmar ejecutados desde OneDrive
+  (`os error 4551`). Por eso `rust/target` es una unión (junction) a
+  `C:\Users\juand\AppData\Local\Temp\opencode\cargo-target`, y las compilaciones
+  de Flutter deben usar
+  `STUDY_PLANNER_CARGOKIT_TEMP_DIR=C:\Users\juand\AppData\Local\Temp\opencode\cargokit-temp`
+  (soporte añadido en `rust_builder/cargokit/cmake/cargokit.cmake`).
+- Modelo de prueba E6: `assets/models/qwen2.5-1.5b-instruct-q4_k_m.gguf`
+  (1,1 GB, no versionado). También se puede definir
+  `STUDY_PLANNER_MODEL_PATH` o colocar cualquier `.gguf` en la carpeta de
+  modelos.
 
 ## Comandos de verificación obligatorios
 
@@ -151,6 +164,39 @@ Cubre FR-012 (XP configurable) y FR-013 (niveles, insignias y rachas).
 - [x] Pruebas Flutter: 17 verdes.
 - [x] Build Windows y arranque real verificados (migración `0005` aplicada).
 
+## Etapa E6 — COMPLETADA ✅
+
+Cubre FR-014 (consultas sobre documentos), FR-016 (distinción documental vs.
+conocimiento general) y RES-004 (LLM local GGUF Q4_K_M).
+
+- [x] Dependencia `llama-cpp-2 0.1.161` (sin features por defecto) y modelo
+      Qwen2.5-1.5B-Instruct Q4_K_M descargado como paquete opcional fuera del
+      repositorio.
+- [x] Rust `ai`: detección del modelo (env, carpeta de modelos junto a la BD,
+      `assets/models` y carpeta del ejecutable), estado del asistente, carga
+      perezosa con caché en memoria y generación con llama.cpp (contexto 4096,
+      máx. 256 tokens nuevos, hilos limitados a 8).
+- [x] Recuperación léxica local: normaliza acentos, descarta palabras vacías,
+      puntúa fragmentos por ocurrencias, selecciona hasta 3 (máx. 2 por
+      documento) y construye un extracto centrado en la consulta.
+- [x] Prompt ChatML: con fragmentos exige responder solo con ellos, citar
+      `[Fuente: nombre]` y rechazar explícitamente si no está en el material;
+      sin fragmentos marca la respuesta como conocimiento general del modelo.
+- [x] Si “Solo documentos” está activo y no hay coincidencias, se devuelve un
+      rechazo sin cargar el modelo (no inventa y no gasta recursos).
+- [x] API FFI: `getAiStatus` (síncrona), `askAssistant` y DTOs
+      `AiStatusDto`, `AssistantSourceDto`, `AssistantAnswerDto`; bindings
+      regenerados.
+- [x] Flutter: pantalla Asistente IA con estado del modelo, selector de
+      asignatura, interruptor “Solo documentos”, pregunta, respuesta con
+      etiqueta de origen y fuentes citadas (nombre + extracto).
+- [x] Pruebas Rust: 43 verdes + 3 ignoradas; la de inferencia real
+      (`answers_from_documents_with_local_model`) verificada manualmente con el
+      modelo Qwen2.5 (respuesta en ~4,4 s).
+- [x] Pruebas Flutter: 20 verdes (incluye aviso sin modelo, respuesta citada y
+      conocimiento general).
+- [x] Build Windows y arranque real verificados.
+
 ## Decisiones de implementación tomadas
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
   disponible. Si no, la imagen se importa igualmente y se avisa de que no se
@@ -202,6 +248,37 @@ Cubre FR-012 (XP configurable) y FR-013 (niveles, insignias y rachas).
   almacenar estado redundante.
 - **Historial:** cada repaso queda en `review_log` con calidad, intervalo y
   factor, lo que permite recalcular el dominio y auditar la evolución.
+- **LLM local (E6):** se integra `llama-cpp-2` (bindings oficiales de
+  llama.cpp) sin servidores ni llamadas de red. El backend se inicializa una
+  sola vez por proceso y los logs nativos se silencian.
+- **Modelo opcional:** la instalación base sigue funcionando sin IA. El modelo
+  se busca por `STUDY_PLANNER_MODEL_PATH`, `STUDY_PLANNER_MODELS_DIR`,
+  `<carpeta de la BD>/models`, `assets/models` junto al directorio actual o al
+  ejecutable. Se usa el primer `.gguf` encontrado.
+- **Recuperación sin embeddings:** para no exigir otro modelo, la selección de
+  contexto es léxica y local (normalización + palabras vacías + ocurrencias).
+  Es suficiente para fragmentos de apuntes y mantiene el consumo bajo.
+- **Anti-alucinación:** con “Solo documentos” activo, si ningún fragmento
+  coincide se devuelve un mensaje de rechazo explícito sin invocar al modelo.
+  Con conocimiento general, la UI etiqueta la respuesta como tal y no muestra
+  fuentes.
+- **Rendimiento:** Qwen2.5-1.5B Q4_K_M respondió en ~4,4 s en el hardware de
+  desarrollo, por debajo del objetivo de 15 s (NFR-002). La primera consulta
+  incluye la carga del modelo; las siguientes reutilizan la caché.
+- **Build en Windows con Smart App Control:** los binarios generados dentro de
+  OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
+  y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit.
+
+## Verificación de E6 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 43 pruebas verdes, 3 ignoradas (OCR, PDF y modelo local).
+- `cargo test answers_from_documents_with_local_model -- --ignored`: verde con
+  Qwen2.5-1.5B Q4_K_M (~4,4 s), citando `study_planner_ai_test.txt`.
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 20 pruebas verdes.
+- `flutter build windows --debug`: correcto.
+- Arranque real del `.exe` durante 10 s: proceso vivo.
 
 ## Verificación de E5 (resultados)
 
@@ -253,6 +330,5 @@ Cubre FR-012 (XP configurable) y FR-013 (niveles, insignias y rachas).
 
 ## Pendiente por etapas (según §12)
 
-- E6: asistente IA local GGUF (FR-014/016, RES-004).
 - E7: `.studyplan` y copias globales (FR-002/019).
 - E8: audio whisper.cpp y evaluaciones automáticas (FR-010, RES-005).

@@ -2,6 +2,9 @@ import '../bridge/bridge.dart';
 
 export '../bridge/bridge.dart'
     show
+        AiStatusDto,
+        AssistantAnswerDto,
+        AssistantSourceDto,
         AvailabilityDayDto,
         BadgeDto,
         DocumentDto,
@@ -111,4 +114,12 @@ abstract class StudyRepository {
   Future<XpConfigDto> saveXpConfig(int subjectId, XpConfigDto config);
 
   Future<GamificationSummaryDto> getGamificationSummary(int profileId);
+
+  Future<AiStatusDto> getAiStatus();
+
+  Future<AssistantAnswerDto> askAssistant(
+    int subjectId,
+    String question,
+    bool documentsOnly,
+  );
 }

@@ -180,6 +180,27 @@ pub struct GamificationSummaryDto {
     pub badges: Vec<BadgeDto>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AiStatusDto {
+    pub available: bool,
+    pub model_path: Option<String>,
+    pub models_dir: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssistantSourceDto {
+    pub label: String,
+    pub excerpt: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssistantAnswerDto {
+    pub answer: String,
+    pub origin: String,
+    pub sources: Vec<AssistantSourceDto>,
+}
+
 impl From<domain::Profile> for ProfileDto {
     fn from(value: domain::Profile) -> Self {
         Self {
@@ -418,6 +439,36 @@ impl From<domain::GamificationSummary> for GamificationSummaryDto {
             best_streak: value.best_streak,
             freeze_enabled: value.freeze_enabled,
             badges: value.badges.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<crate::ai::AiStatus> for AiStatusDto {
+    fn from(value: crate::ai::AiStatus) -> Self {
+        Self {
+            available: value.available,
+            model_path: value.model_path,
+            models_dir: value.models_dir,
+            message: value.message,
+        }
+    }
+}
+
+impl From<crate::ai::AssistantSource> for AssistantSourceDto {
+    fn from(value: crate::ai::AssistantSource) -> Self {
+        Self {
+            label: value.label,
+            excerpt: value.excerpt,
+        }
+    }
+}
+
+impl From<crate::ai::AssistantAnswer> for AssistantAnswerDto {
+    fn from(value: crate::ai::AssistantAnswer) -> Self {
+        Self {
+            answer: value.answer,
+            origin: value.origin,
+            sources: value.sources.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -665,4 +716,20 @@ pub fn save_xp_config(subject_id: i64, config: XpConfigDto) -> anyhow::Result<Xp
 pub fn get_gamification_summary(profile_id: i64) -> anyhow::Result<GamificationSummaryDto> {
     let summary = db::with_db(|database| crate::gamification::summary(database, profile_id))?;
     Ok(summary.into())
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn get_ai_status() -> AiStatusDto {
+    crate::ai::status().into()
+}
+
+pub fn ask_assistant(
+    subject_id: i64,
+    question: String,
+    documents_only: bool,
+) -> anyhow::Result<AssistantAnswerDto> {
+    let answer = db::with_db(|database| {
+        crate::ai::ask_with_db(database, subject_id, &question, documents_only)
+    })?;
+    Ok(answer.into())
 }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use chrono::{Days, Duration, Local, NaiveDate, NaiveDateTime, SecondsFormat, Utc};
@@ -1481,15 +1481,23 @@ fn apply_migrations(conn: &mut Connection) -> CoreResult<()> {
 }
 
 static DATABASE: OnceLock<Mutex<Database>> = OnceLock::new();
+static MODELS_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
 
 pub fn initialize(path: &str) -> CoreResult<()> {
     if DATABASE.get().is_some() {
         return Ok(());
     }
     let database = Database::open(path)?;
+    if let Some(parent) = Path::new(path).parent() {
+        let _ = MODELS_DIRECTORY.set(parent.join("models"));
+    }
     DATABASE
         .set(Mutex::new(database))
         .map_err(|_| CoreError::InvalidState("la base de datos ya fue inicializada".into()))
+}
+
+pub fn models_directory() -> Option<PathBuf> {
+    MODELS_DIRECTORY.get().cloned()
 }
 
 pub fn with_db<T>(f: impl FnOnce(&mut Database) -> CoreResult<T>) -> CoreResult<T> {

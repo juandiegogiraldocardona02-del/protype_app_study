@@ -25,6 +25,16 @@ class FakeStudyRepository implements StudyRepository {
   int _nextSessionId = 1;
   int _nextFlashcardId = 1;
   bool ocrAvailableResult = false;
+  AiStatusDto aiStatus = const AiStatusDto(
+    available: true,
+    modelPath: 'models/test.gguf',
+    modelsDir: 'models',
+    message: 'Modelo de prueba disponible.',
+  );
+  AssistantAnswerDto? assistantAnswer;
+  int? lastAssistantSubjectId;
+  String? lastAssistantQuestion;
+  bool? lastAssistantDocumentsOnly;
 
   ProfileDto addProfile(String name) {
     final profile = ProfileDto(
@@ -878,6 +888,44 @@ class FakeStudyRepository implements StudyRepository {
           earned: reviews >= 10,
         ),
       ],
+    );
+  }
+
+  @override
+  Future<AiStatusDto> getAiStatus() async => aiStatus;
+
+  @override
+  Future<AssistantAnswerDto> askAssistant(
+    int subjectId,
+    String question,
+    bool documentsOnly,
+  ) async {
+    lastAssistantSubjectId = subjectId;
+    lastAssistantQuestion = question;
+    lastAssistantDocumentsOnly = documentsOnly;
+    final configured = assistantAnswer;
+    if (configured != null) {
+      return configured;
+    }
+    if (documentsOnly && (_documents[subjectId] ?? const []).isEmpty) {
+      return const AssistantAnswerDto(
+        answer:
+            'No encontré esa información en los documentos de la asignatura.',
+        origin: 'documentos',
+        sources: [],
+      );
+    }
+    return AssistantAnswerDto(
+      answer: 'Respuesta de prueba para «$question».',
+      origin: documentsOnly ? 'documentos' : 'general',
+      sources: documentsOnly
+          ? const [
+              AssistantSourceDto(
+                label: 'apuntes.txt · Tema 1',
+                excerpt: 'Fragmento de prueba tomado de los apuntes.',
+              ),
+            ]
+          : const [],
     );
   }
 

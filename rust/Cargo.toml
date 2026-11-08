@@ -17,6 +17,7 @@ anyhow = "1"
 sha2 = "0.10"
 hex = "0.4"
 pdf-extract = "0.12"
+llama-cpp-2 = { version = "0.1.161", default-features = false }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

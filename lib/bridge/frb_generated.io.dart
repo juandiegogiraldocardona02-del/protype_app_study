@@ -28,6 +28,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  AiStatusDto dco_decode_ai_status_dto(dynamic raw);
+
+  @protected
+  AssistantAnswerDto dco_decode_assistant_answer_dto(dynamic raw);
+
+  @protected
+  AssistantSourceDto dco_decode_assistant_source_dto(dynamic raw);
+
+  @protected
   AvailabilityDayDto dco_decode_availability_day_dto(dynamic raw);
 
   @protected
@@ -62,6 +71,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ImportOutcomeDto dco_decode_import_outcome_dto(dynamic raw);
+
+  @protected
+  List<AssistantSourceDto> dco_decode_list_assistant_source_dto(dynamic raw);
 
   @protected
   List<AvailabilityDayDto> dco_decode_list_availability_day_dto(dynamic raw);
@@ -153,6 +165,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AiStatusDto sse_decode_ai_status_dto(SseDeserializer deserializer);
+
+  @protected
+  AssistantAnswerDto sse_decode_assistant_answer_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssistantSourceDto sse_decode_assistant_source_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   AvailabilityDayDto sse_decode_availability_day_dto(
     SseDeserializer deserializer,
   );
@@ -195,6 +220,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ImportOutcomeDto sse_decode_import_outcome_dto(SseDeserializer deserializer);
+
+  @protected
+  List<AssistantSourceDto> sse_decode_list_assistant_source_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<AvailabilityDayDto> sse_decode_list_availability_day_dto(
@@ -304,6 +334,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_ai_status_dto(AiStatusDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_assistant_answer_dto(
+    AssistantAnswerDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_assistant_source_dto(
+    AssistantSourceDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_availability_day_dto(
     AvailabilityDayDto self,
     SseSerializer serializer,
@@ -354,6 +399,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_import_outcome_dto(
     ImportOutcomeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_assistant_source_dto(
+    List<AssistantSourceDto> self,
     SseSerializer serializer,
   );
 
