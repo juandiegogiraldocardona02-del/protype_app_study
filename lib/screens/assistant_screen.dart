@@ -292,15 +292,15 @@ class _ModelStatusCard extends StatelessWidget {
         }
         return _StatusCard(
           available: false,
-          title: 'Modelo local no instalado',
+          title: 'Asistente local (modo documentos)',
           message:
-              'Descarga un modelo GGUF (Qwen2.5-1.5B-Instruct Q4_K_M o '
-              'similar) y colócalo en la carpeta de modelos.',
-          details: 'Carpeta: ${value.modelsDir}',
-          icon: Icons.cloud_off_outlined,
+              'Responde usando los documentos importados de la asignatura. '
+              'Si no hay modelo GGUF, funciona igual con el material que hayas añadido.',
+          details: 'Carpeta de modelos: ${value.modelsDir}',
+          icon: Icons.library_books_outlined,
           color: Theme.of(context).colorScheme.tertiaryContainer,
           textColor: Theme.of(context).colorScheme.tertiary,
-          hint: 'Sin el modelo, el asistente no genera respuestas.',
+          hint: 'Importa un documento desde Archivos para que el asistente tenga contexto.',
         );
       },
     );

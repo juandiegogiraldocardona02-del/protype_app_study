@@ -151,7 +151,7 @@ pub fn ask_with_db(
     database: &Database,
     subject_id: i64,
     question: &str,
-    documents_only: bool,
+    _documents_only: bool,
 ) -> CoreResult<AssistantAnswer> {
     database.get_subject(subject_id)?;
     let question = question.trim();
@@ -170,7 +170,7 @@ pub fn ask_with_db(
     let terms = keywords(question);
     let selected = retrieve(&snippets, &terms);
 
-    if selected.is_empty() && documents_only {
+    if selected.is_empty() {
         return Ok(AssistantAnswer {
             answer: REFUSAL.to_string(),
             origin: "documentos".to_string(),
@@ -178,13 +178,26 @@ pub fn ask_with_db(
         });
     }
 
-    let model_path = find_model().ok_or_else(|| {
-        CoreError::Validation(
-            "el asistente requiere un modelo GGUF Q4_K_M; no se encontró ninguno \
-en la carpeta de modelos"
-                .into(),
-        )
-    })?;
+    let model_path = match find_model() {
+        Some(path) => path,
+        None => {
+            // Modo sin modelo GGUF: responder usando únicamente los fragmentos
+            // locales extraídos de los documentos de la asignatura.
+            let answer = synthesize_local_answer(question, &selected);
+            return Ok(AssistantAnswer {
+                answer,
+                origin: "documentos".to_string(),
+                sources: selected
+                    .iter()
+                    .map(|chunk| AssistantSource {
+                        label: chunk.label.clone(),
+                        excerpt: excerpt(&chunk.text, &terms, UI_EXCERPT_CHARS),
+                    })
+                    .collect(),
+            });
+        }
+    };
+
     let prompt = if selected.is_empty() {
         build_general_prompt(question)
     } else {
@@ -300,6 +313,26 @@ fn excerpt(text: &str, terms: &[String], max_chars: usize) -> String {
     } else {
         collapsed
     }
+}
+
+fn synthesize_local_answer(question: &str, chunks: &[RetrievedChunk]) -> String {
+    if chunks.is_empty() {
+        return REFUSAL.to_string();
+    }
+    let mut answer = String::new();
+    answer.push_str(&format!(
+        "Respuesta a «{}» según los documentos de la asignatura:\n\n",
+        question
+    ));
+    for (index, chunk) in chunks.iter().enumerate() {
+        answer.push_str(&format!(
+            "[{}] {}\n\n",
+            index + 1,
+            excerpt(&chunk.text, &[], EXCERPT_CHARS)
+        ));
+    }
+    answer.push_str("Si necesitas más detalles, especifica qué aspecto te interesa.");
+    answer
 }
 
 fn build_documents_prompt(question: &str, chunks: &[RetrievedChunk]) -> String {

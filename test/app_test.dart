@@ -505,7 +505,7 @@ void main() {
     await tester.tap(find.text('Asistente IA').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Modelo local no instalado'), findsOneWidget);
+    expect(find.text('Asistente local (modo documentos)'), findsOneWidget);
     expect(find.textContaining('/datos/models'), findsOneWidget);
   });
 
