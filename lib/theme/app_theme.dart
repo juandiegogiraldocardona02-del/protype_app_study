@@ -1,36 +1,44 @@
 import 'package:flutter/material.dart';
 
-const _seed = Color(0xFF4F46E5);
-const _surface = Color(0xFF0F172A);
-const _surfaceVariant = Color(0xFF1E293B);
-const _onSurface = Color(0xFFF8FAFC);
-const _primary = Color(0xFF6366F1);
-const _secondary = Color(0xFF818CF8);
-const _tertiary = Color(0xFFF472B6);
-const _error = Color(0xFFF87171);
+const Color seed = Color(0xFF1E3A8A);
+const Color surfaceDark = Color(0xFF0B1120);
+const Color surfaceCard = Color(0xFF111827);
+const Color onSurfaceDark = Color(0xFFF1F5F9);
+const Color bluePrimary = Color(0xFF2563EB);
+const Color blueLight = Color(0xFF93C5FD);
+const Color accentCyan = Color(0xFF22D3EE);
+const Color accentAmber = Color(0xFFFBBF24);
+const Color errorRed = Color(0xFFF87171);
 
 const List<Color> subjectColors = [
-  Color(0xFF4F46E5),
-  Color(0xFF059669),
-  Color(0xFFDC2626),
-  Color(0xFFD97706),
-  Color(0xFF7C3AED),
-  Color(0xFF0891B2),
-  Color(0xFFBE185D),
-  Color(0xFF84CC16),
+  Color(0xFF1E3A8A), // azul académico
+  Color(0xFF047857), // verde esmeralda
+  Color(0xFFB91C1C), // rojo intenso
+  Color(0xFFD97706), // naranja ámbar
+  Color(0xFF6D28D9), // púrpura
+  Color(0xFF0891B2), // cian
+  Color(0xFFBE185D), // rosa
+  Color(0xFF65A30D), // lima
 ];
 
 ThemeData buildTheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
-  final colorScheme = ColorScheme.fromSeed(
-    seedColor: _seed,
+  final Color surface = isDark ? surfaceCard : const Color(0xFFFAFAFA);
+  final Color scaffold = isDark ? surfaceDark : const Color(0xFFF8FAFC);
+  final Color onSurface = isDark ? onSurfaceDark : const Color(0xFF0F172A);
+  final Color surfaceVariant = isDark
+      ? const Color(0xFF1F2937)
+      : const Color(0xFFF1F5F9);
+
+  final ColorScheme colorScheme = ColorScheme.fromSeed(
+    seedColor: seed,
     brightness: brightness,
-    primary: _primary,
-    secondary: _secondary,
-    tertiary: _tertiary,
-    error: _error,
-    surface: isDark ? _surface : const Color(0xFFFAFAFA),
-    onSurface: isDark ? _onSurface : const Color(0xFF020617),
+    primary: bluePrimary,
+    secondary: blueLight,
+    tertiary: accentCyan,
+    error: errorRed,
+    surface: surface,
+    onSurface: onSurface,
   );
 
   return ThemeData(
@@ -38,23 +46,21 @@ ThemeData buildTheme(Brightness brightness) {
     colorScheme: colorScheme,
     brightness: brightness,
     visualDensity: VisualDensity.comfortable,
-    scaffoldBackgroundColor: isDark
-        ? const Color(0xFF020617)
-        : const Color(0xFFFAFAFA),
+    scaffoldBackgroundColor: scaffold,
     cardTheme: CardThemeData(
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: isDark ? _surfaceVariant : const Color(0xFFF1F5F9),
+      fillColor: surfaceVariant,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
@@ -65,13 +71,16 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: _primary, width: 2),
+        borderSide: BorderSide(color: bluePrimary, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 16,
+      ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: isDark ? _surfaceVariant : const Color(0xFFE2E8F0),
+      backgroundColor: isDark ? surfaceVariant : const Color(0xFFE2E8F0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       contentTextStyle: const TextStyle(
         fontSize: 14,
@@ -79,26 +88,32 @@ ThemeData buildTheme(Brightness brightness) {
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: _primary,
+      backgroundColor: bluePrimary,
       foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _primary,
+        backgroundColor: bluePrimary,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         elevation: 0,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: _primary,
+        foregroundColor: bluePrimary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
       ),
     ),
     textTheme: const TextTheme(
