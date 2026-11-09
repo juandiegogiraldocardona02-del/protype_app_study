@@ -384,6 +384,8 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - **Pestaña de inicio de clase (solicitud del usuario):** se añadió la pestaña
   “Inicio de clase” para seleccionar y abrir el archivo (documento o audio)
   que se usará al comenzar la sesión.
+- **Visor de PDF (solicitud del usuario):** se añadió la sección “PDFs” para
+  listar los PDF importados y abrir su contenido extraído dentro de la app.
 - **Build en Windows con Smart App Control:** los binarios generados dentro de
   OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
   y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit. Si
@@ -395,7 +397,7 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
 - `cargo test`: 55 pruebas verdes, 3 ignoradas (OCR, PDF y modelo local).
 - `flutter analyze`: 0 incidencias.
-- `flutter test`: 26 pruebas verdes.
+- `flutter test`: 28 pruebas verdes.
 - `flutter build windows --debug`: correcto usando
   `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR` por el bloqueo de SAC a los
   build-scripts de Cargokit.

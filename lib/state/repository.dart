@@ -55,6 +55,8 @@ abstract class StudyRepository {
 
   Future<List<DocumentDto>> listDocuments(int subjectId);
 
+  Future<List<String>> listDocumentChunks(int documentId);
+
   Future<ImportOutcomeDto> importDocument(int subjectId, String path);
 
   Future<void> deleteDocument(int id);

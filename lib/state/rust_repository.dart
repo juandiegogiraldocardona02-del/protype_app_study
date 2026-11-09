@@ -36,6 +36,10 @@ class RustStudyRepository implements StudyRepository {
       rust.listDocuments(subjectId: subjectId);
 
   @override
+  Future<List<String>> listDocumentChunks(int documentId) =>
+      rust.listDocumentChunks(documentId: documentId);
+
+  @override
   Future<ImportOutcomeDto> importDocument(int subjectId, String path) =>
       rust.importDocument(subjectId: subjectId, path: path);
 
@@ -52,10 +56,8 @@ class RustStudyRepository implements StudyRepository {
   Future<AssessmentProposalDto> generateAssessment(
     int subjectId,
     int maxQuestions,
-  ) => rust.generateAssessment(
-    subjectId: subjectId,
-    maxQuestions: maxQuestions,
-  );
+  ) =>
+      rust.generateAssessment(subjectId: subjectId, maxQuestions: maxQuestions);
 
   @override
   Future<AssessmentResultDto> gradeAssessment(

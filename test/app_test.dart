@@ -260,6 +260,35 @@ void main() {
     expect(find.text('Abrir archivo'), findsOneWidget);
   });
 
+  testWidgets('abre el contenido de un PDF importado', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    final document = repository.addDocument(
+      1,
+      name: 'Tema.pdf',
+      kind: 'pdf',
+      textChars: 400,
+    );
+    repository.addDocumentChunks(document.id, [
+      'El tema trata sobre biología celular.',
+    ]);
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PDFs').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('PDFs'), findsWidgets);
+    expect(find.text('Tema.pdf'), findsOneWidget);
+    await tester.tap(find.byTooltip('Abrir PDF').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Contenido de «Tema.pdf»'), findsOneWidget);
+    expect(find.text('El tema trata sobre biología celular.'), findsOneWidget);
+  });
+
   testWidgets('genera y guarda un plan desde la agenda', (tester) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');

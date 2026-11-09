@@ -349,6 +349,18 @@ impl Database {
         Ok(documents)
     }
 
+    pub fn list_document_chunks(&self, document_id: i64) -> CoreResult<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT texto FROM document_chunks WHERE document_id = ?1 ORDER BY id")?;
+        let rows = stmt.query_map(params![document_id], |row| row.get(0))?;
+        let mut chunks = Vec::new();
+        for row in rows {
+            chunks.push(row?);
+        }
+        Ok(chunks)
+    }
+
     pub fn delete_document(&mut self, id: i64) -> CoreResult<()> {
         let tx = self.conn.transaction()?;
         let deleted = tx.execute("DELETE FROM documents WHERE id = ?1", params![id])?;

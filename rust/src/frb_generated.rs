@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1168779120;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -179570251;
 
 // Section: executor
 
@@ -978,6 +978,41 @@ fn wire__crate__bridge__list_assessments_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::bridge::list_assessments(api_subject_id)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__list_document_chunks_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "list_document_chunks",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_document_id = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::list_document_chunks(api_document_id)?;
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
@@ -2827,30 +2862,31 @@ fn pde_ffi_dispatcher_primary_impl(
         24 => wire__crate__bridge__inspect_backup_impl(port, ptr, rust_vec_len, data_len),
         25 => wire__crate__bridge__inspect_study_plan_impl(port, ptr, rust_vec_len, data_len),
         26 => wire__crate__bridge__list_assessments_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__bridge__list_documents_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__bridge__list_due_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__bridge__list_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__bridge__list_mastery_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__bridge__list_sessions_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__bridge__list_topics_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__bridge__ocr_available_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__bridge__preview_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__bridge__preview_plan_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__bridge__replan_subject_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__bridge__restore_backup_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__bridge__revert_replan_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__bridge__review_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__bridge__save_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__bridge__save_plan_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__bridge__save_plan_settings_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__bridge__save_xp_config_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__bridge__set_session_state_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__bridge__update_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__bridge__update_topic_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__bridge__list_document_chunks_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__bridge__list_documents_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__bridge__list_due_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__bridge__list_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__bridge__list_mastery_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__bridge__list_sessions_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__bridge__list_topics_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__bridge__ocr_available_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__bridge__preview_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__bridge__preview_plan_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__bridge__replan_subject_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__bridge__restore_backup_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__bridge__revert_replan_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__bridge__review_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__bridge__save_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__bridge__save_plan_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__bridge__save_plan_settings_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__bridge__save_xp_config_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__bridge__set_session_state_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__bridge__update_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__bridge__update_topic_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

@@ -7,7 +7,8 @@ class FakeStudyRepository implements StudyRepository {
   final Map<int, List<SubjectDto>> _subjects = <int, List<SubjectDto>>{};
   final Map<int, List<DocumentDto>> _documents = <int, List<DocumentDto>>{};
   final Map<int, List<TopicDto>> _topics = <int, List<TopicDto>>{};
-  final Map<int, List<AssessmentDto>> _assessments = <int, List<AssessmentDto>>{};
+  final Map<int, List<AssessmentDto>> _assessments =
+      <int, List<AssessmentDto>>{};
   final Map<int, PlanSettingsDto> _settings = <int, PlanSettingsDto>{};
   final Map<int, SessionDto> _sessions = <int, SessionDto>{};
   final Map<int, FlashcardDto> _flashcards = <int, FlashcardDto>{};
@@ -205,6 +206,17 @@ class FakeStudyRepository implements StudyRepository {
     return List<DocumentDto>.of(_documents[subjectId] ?? const <DocumentDto>[]);
   }
 
+  final Map<int, List<String>> _documentChunks = {};
+
+  @override
+  Future<List<String>> listDocumentChunks(int documentId) async {
+    return List<String>.of(_documentChunks[documentId] ?? const <String>[]);
+  }
+
+  void addDocumentChunks(int documentId, List<String> chunks) {
+    _documentChunks.putIfAbsent(documentId, () => <String>[]).addAll(chunks);
+  }
+
   @override
   Future<ImportOutcomeDto> importDocument(int subjectId, String path) async {
     final name = path.split(RegExp(r'[\\/]')).last;
@@ -280,7 +292,8 @@ class FakeStudyRepository implements StudyRepository {
         kind: 'respuesta_corta',
         prompt: 'Define o explica: «célula»',
         options: const [],
-        correctAnswer: 'La célula es la unidad estructural y funcional de la vida.',
+        correctAnswer:
+            'La célula es la unidad estructural y funcional de la vida.',
         explanation: 'Respuesta tomada de apuntes.',
         source: 'apuntes.txt',
         topicId: topic?.id,
@@ -341,16 +354,16 @@ class FakeStudyRepository implements StudyRepository {
       total: total,
       threshold: threshold,
     );
-    _assessments.putIfAbsent(subjectId, () => <AssessmentDto>[]).add(assessment);
+    _assessments
+        .putIfAbsent(subjectId, () => <AssessmentDto>[])
+        .add(assessment);
     return AssessmentResultDto(
       assessmentId: assessment.id,
       score: score,
       correct: correct,
       total: total,
       passed: passed,
-      message: passed
-          ? 'Cuestionario aprobado.'
-          : 'Cuestionario no aprobado.',
+      message: passed ? 'Cuestionario aprobado.' : 'Cuestionario no aprobado.',
       details: details,
     );
   }
@@ -1129,11 +1142,7 @@ class FakeStudyRepository implements StudyRepository {
     if (configured != null) {
       return configured;
     }
-    final created = addSubject(
-      profileId,
-      'Asignatura importada',
-      '#4F46E5',
-    );
+    final created = addSubject(profileId, 'Asignatura importada', '#4F46E5');
     return StudyPlanImportDto(
       subjectId: created.id,
       subjectName: created.name,
@@ -1171,10 +1180,7 @@ class FakeStudyRepository implements StudyRepository {
   }
 
   @override
-  Future<BackupRestoreDto> restoreBackup(
-    String path,
-    bool overwrite,
-  ) async {
+  Future<BackupRestoreDto> restoreBackup(String path, bool overwrite) async {
     lastInspectPath = path;
     lastRestoreOverwrite = overwrite;
     final configured = backupRestoreResult;

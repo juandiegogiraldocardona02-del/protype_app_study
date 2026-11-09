@@ -66,6 +66,9 @@ Future<List<DocumentDto>> listDocuments({required PlatformInt64 subjectId}) =>
 Future<void> deleteDocument({required PlatformInt64 id}) =>
     RustLib.instance.api.crateBridgeDeleteDocument(id: id);
 
+Future<List<String>> listDocumentChunks({required PlatformInt64 documentId}) =>
+    RustLib.instance.api.crateBridgeListDocumentChunks(documentId: documentId);
+
 Future<bool> ocrAvailable() => RustLib.instance.api.crateBridgeOcrAvailable();
 
 Future<bool> audioAvailable() =>

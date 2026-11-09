@@ -819,6 +819,11 @@ pub fn delete_document(id: i64) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn list_document_chunks(document_id: i64) -> anyhow::Result<Vec<String>> {
+    let chunks = db::with_db(|database| database.list_document_chunks(document_id))?;
+    Ok(chunks)
+}
+
 pub fn ocr_available() -> bool {
     crate::documents::ocr_available()
 }

@@ -53,6 +53,13 @@ final documentsProvider = FutureProvider.family<List<DocumentDto>, int>((
   return ref.watch(repositoryProvider).listDocuments(subjectId);
 });
 
+final documentChunksProvider = FutureProvider.family<List<String>, int>((
+  ref,
+  documentId,
+) {
+  return ref.watch(repositoryProvider).listDocumentChunks(documentId);
+});
+
 final topicsProvider = FutureProvider.family<List<TopicDto>, int>((
   ref,
   subjectId,
