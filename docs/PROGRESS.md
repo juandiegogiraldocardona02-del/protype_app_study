@@ -2,8 +2,7 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: E1–E8 implementadas; E8 pendiente de arranque manual por
-> una limitación de Smart App Control.
+> Última actualización: Etapas E1–E8 completadas y verificadas en Windows.
 
 ## Repositorio
 
@@ -36,6 +35,9 @@
   y se pasa a Flutter
   `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR=C:\Users\juand\AppData\Local\Temp\opencode\cargo-target\debug`;
   Cargokit copia el `.dll` y su `.lib` en lugar de recompilar.
+  En esta máquina se desactivó SAC con
+  `VerifiedAndReputablePolicyState=0` y `CiTool.exe --refresh` (sin reinicio);
+  Microsoft indica que volver a activarlo requiere restablecer Windows.
 - Modelo de prueba E6: `assets/models/qwen2.5-1.5b-instruct-q4_k_m.gguf`
   (1,1 GB, no versionado). También se puede definir
   `STUDY_PLANNER_MODEL_PATH` o colocar cualquier `.gguf` en la carpeta de
@@ -239,7 +241,7 @@ Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
       simulado).
 - [x] Build Windows y arranque real verificados.
 
-## Etapa E8 — IMPLEMENTADA (arranque manual pendiente) ⚠️
+## Etapa E8 — COMPLETADA ✅
 
 Cubre FR-003 (audio), FR-010 (evaluaciones automáticas), FR-011 (dominio con
 evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
@@ -274,8 +276,9 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - [x] Pruebas Flutter: 25 verdes; nueva de generar y corregir un cuestionario.
 - [x] `flutter build windows --debug` correcto con el workaround de Cargokit
       (`STUDY_PLANNER_CARGOKIT_PREBUILT_DIR`).
-- [ ] Arranque real del `.exe`: **no verificable en esta sesión** porque Smart
-      App Control bloqueó la nueva `study_planner_core.dll` (`os error 4551`).
+- [x] Arranque real del `.exe` verificado durante 10 s tras desactivar Smart App
+      Control y refrescar la política con `CiTool.exe --refresh`; la app quedó
+      abierta y respondiendo.
 
 ## Decisiones de implementación tomadas
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
@@ -389,8 +392,8 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - `flutter build windows --debug`: correcto usando
   `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR` por el bloqueo de SAC a los
   build-scripts de Cargokit.
-- Arranque real del `.exe`: bloqueado por Smart App Control al cargar la nueva
-  `study_planner_core.dll`; pendiente de repetir en un entorno sin SAC.
+- Arranque real del `.exe`: proceso vivo tras 10 s y ventana respondiendo
+  (`study_planner`, PID 24404).
 
 ## Verificación de E7 (resultados)
 
@@ -462,5 +465,5 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 
 ## Pendiente por etapas (según §12)
 
-- E1–E8 implementadas. Pendiente de verificación manual del arranque de E8 en un
-  entorno sin Smart App Control y de la prueba con red deshabilitada.
+- E1–E8 implementadas y con arranque real verificado. Pendiente la prueba
+  formal con la red deshabilitada (NFR-003).
