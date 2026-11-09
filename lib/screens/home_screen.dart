@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
 import '../state/repository.dart';
+import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import 'subject_space_screen.dart';
 
@@ -23,31 +24,39 @@ class HomeScreen extends ConsumerWidget {
       error: (error, _) => _ErrorView(message: error.toString()),
       data: (subjects) {
         return ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
           children: [
-            Text(
-              'Hola, ${profile.name}',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tu planificación vive en este dispositivo. Sin cuentas, sin nube.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
+            _Header(profile: profile),
             const SizedBox(height: 24),
             _SummaryRow(
               subjectCount: subjects.length,
               profileName: profile.name,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             gamification.when(
               loading: () => const SizedBox.shrink(),
               error: (error, _) => const SizedBox.shrink(),
               data: (summary) => _GamificationCard(summary: summary),
             ),
             const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    subjects.isEmpty ? 'Sin asignaturas' : 'Tus asignaturas',
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (subjects.isNotEmpty)
+                  TextButton(
+                    onPressed: () =>
+                        ref.read(navigationIndexProvider.notifier).select(1),
+                    child: const Text('Ver todas'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
             if (subjects.isEmpty)
               EmptyState(
                 icon: Icons.menu_book_outlined,
@@ -63,55 +72,23 @@ class HomeScreen extends ConsumerWidget {
                 ),
               )
             else ...[
-              Row(
-                children: [
-                  Text(
-                    'Tus asignaturas',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () =>
-                        ref.read(navigationIndexProvider.notifier).select(1),
-                    child: const Text('Ver todas'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  for (final subject in subjects)
+                  for (var i = 0; i < subjects.length; i++)
                     SizedBox(
-                      width: 260,
-                      child: Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: _subjectColor(subject.color),
-                            child: const Icon(
-                              Icons.book_outlined,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                          title: Text(subject.name),
-                          subtitle: const Text('Abrir espacio'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  SubjectSpaceScreen(subject: subject),
-                            ),
-                          ),
-                        ),
+                      width: 280,
+                      child: _SubjectCard(
+                        subject: subjects[i],
+                        color: subjectColors[i % subjectColors.length],
                       ),
                     ),
                 ],
               ),
             ],
             const SizedBox(height: 32),
-            const _ComingSoonCard(),
+            const _FooterCard(),
           ],
         );
       },
@@ -119,10 +96,65 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-Color _subjectColor(String hex) {
-  final normalized = hex.replaceFirst('#', '');
-  final value = int.tryParse(normalized, radix: 16) ?? 0x4F46E5;
-  return Color(0xFF000000 | value);
+class _Header extends StatelessWidget {
+  const _Header({required this.profile});
+
+  final ProfileDto profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.school_outlined,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hola, ${profile.name}',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tu planificación vive en este dispositivo. Sin cuentas, sin nube.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SummaryRow extends StatelessWidget {
@@ -154,7 +186,19 @@ class _SummaryRow extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(item.icon),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -162,11 +206,14 @@ class _SummaryRow extends StatelessWidget {
                         children: [
                           Text(
                             item.label,
-                            style: Theme.of(context).textTheme.labelMedium,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
+                          const SizedBox(height: 4),
                           Text(
                             item.value,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -189,47 +236,91 @@ class _GamificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final progress = summary.xpForNextLevel <= 0
         ? 0.0
         : summary.xpInLevel / summary.xpForNextLevel;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(radius: 26, child: Text('${summary.level}')),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nivel ${summary.level} · ${summary.totalXp} XP',
-                    style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.tertiary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      minHeight: 8,
+                  child: Center(
+                    child: Text(
+                      '${summary.level}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 22,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.local_fire_department_outlined,
-                        size: 18,
+                      Text(
+                        'Nivel ${summary.level}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      Text('Racha ${summary.currentStreak} d'),
-                      const Spacer(),
-                      Text('Mejor ${summary.bestStreak} d'),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${summary.totalXp} XP total',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 10,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary,
+                ),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _StatChip(
+                  icon: Icons.local_fire_department_outlined,
+                  label: 'Racha ${summary.currentStreak} d',
+                  color: Colors.amber,
+                ),
+                const SizedBox(width: 12),
+                _StatChip(
+                  icon: Icons.emoji_events_outlined,
+                  label: 'Mejor ${summary.bestStreak} d',
+                  color: theme.colorScheme.tertiary,
+                ),
+              ],
             ),
           ],
         ),
@@ -238,8 +329,116 @@ class _GamificationCard extends StatelessWidget {
   }
 }
 
-class _ComingSoonCard extends StatelessWidget {
-  const _ComingSoonCard();
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubjectCard extends StatelessWidget {
+  const _SubjectCard({required this.subject, required this.color});
+
+  final SubjectDto subject;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant
+              .withValues(alpha: 0.6),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SubjectSpaceScreen(subject: subject),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.book_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                subject.name,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Toca para abrir tu espacio',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterCard extends StatelessWidget {
+  const _FooterCard();
 
   @override
   Widget build(BuildContext context) {
@@ -249,12 +448,11 @@ class _ComingSoonCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.schedule, color: theme.colorScheme.primary),
+            Icon(Icons.info_outline, color: theme.colorScheme.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'El asistente local y las evaluaciones automáticas se '
-                'activarán en las siguientes etapas del plan.',
+                'Todo funciona sin internet. Tus datos permanecen en tu dispositivo.',
                 style: theme.textTheme.bodyMedium,
               ),
             ),

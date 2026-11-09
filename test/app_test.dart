@@ -442,7 +442,8 @@ void main() {
 
     await _pumpApp(tester, repository);
 
-    expect(find.text('Nivel 2 · 250 XP'), findsOneWidget);
+    expect(find.text('Nivel 2'), findsOneWidget);
+    expect(find.text('250 XP total'), findsOneWidget);
     expect(find.text('Racha 3 d'), findsOneWidget);
     expect(find.text('Mejor 5 d'), findsOneWidget);
   });
