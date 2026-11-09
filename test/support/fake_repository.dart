@@ -7,6 +7,7 @@ class FakeStudyRepository implements StudyRepository {
   final Map<int, List<SubjectDto>> _subjects = <int, List<SubjectDto>>{};
   final Map<int, List<DocumentDto>> _documents = <int, List<DocumentDto>>{};
   final Map<int, List<TopicDto>> _topics = <int, List<TopicDto>>{};
+  final Map<int, List<AssessmentDto>> _assessments = <int, List<AssessmentDto>>{};
   final Map<int, PlanSettingsDto> _settings = <int, PlanSettingsDto>{};
   final Map<int, SessionDto> _sessions = <int, SessionDto>{};
   final Map<int, FlashcardDto> _flashcards = <int, FlashcardDto>{};
@@ -24,7 +25,11 @@ class FakeStudyRepository implements StudyRepository {
   int _nextTopicId = 1;
   int _nextSessionId = 1;
   int _nextFlashcardId = 1;
+  int _nextAssessmentId = 1;
   bool ocrAvailableResult = false;
+  bool audioAvailableResult = false;
+  AssessmentProposalDto? assessmentProposal;
+  AssessmentResultDto? assessmentResult;
   AiStatusDto aiStatus = const AiStatusDto(
     available: true,
     modelPath: 'models/test.gguf',
@@ -123,6 +128,7 @@ class FakeStudyRepository implements StudyRepository {
     _flashcards.removeWhere((_, card) => topicIds.contains(card.topicId));
     _reviewQualities.removeWhere((topicId, _) => topicIds.contains(topicId));
     _settings.remove(subjectId);
+    _assessments.remove(subjectId);
     _sessions.removeWhere((_, session) => session.subjectId == subjectId);
   }
 
@@ -231,6 +237,130 @@ class FakeStudyRepository implements StudyRepository {
 
   @override
   Future<bool> ocrAvailable() async => ocrAvailableResult;
+
+  @override
+  Future<bool> audioAvailable() async => audioAvailableResult;
+
+  @override
+  Future<AssessmentProposalDto> generateAssessment(
+    int subjectId,
+    int maxQuestions,
+  ) async {
+    final configured = assessmentProposal;
+    if (configured != null) {
+      return configured;
+    }
+    final topics = _topics[subjectId] ?? const <TopicDto>[];
+    final topic = topics.isEmpty ? null : topics.first;
+    final questions = <AssessmentQuestionDto>[
+      AssessmentQuestionDto(
+        id: 1,
+        kind: 'opcion_multiple',
+        prompt: 'Completa la frase: «La célula es la unidad _____».',
+        options: const ['estructural', 'química', 'eléctrica', 'numérica'],
+        correctAnswer: 'estructural',
+        explanation: 'La célula es la unidad estructural de la vida.',
+        source: 'apuntes.txt',
+        topicId: topic?.id,
+        topicName: topic?.name,
+      ),
+      AssessmentQuestionDto(
+        id: 2,
+        kind: 'verdadero_falso',
+        prompt: 'Indica si es verdadera o falsa: «La célula es la unidad de la vida».',
+        options: const ['Verdadero', 'Falso'],
+        correctAnswer: 'Verdadero',
+        explanation: 'La afirmación es verdadera.',
+        source: 'apuntes.txt',
+        topicId: topic?.id,
+        topicName: topic?.name,
+      ),
+      AssessmentQuestionDto(
+        id: 3,
+        kind: 'respuesta_corta',
+        prompt: 'Define o explica: «célula»',
+        options: const [],
+        correctAnswer: 'La célula es la unidad estructural y funcional de la vida.',
+        explanation: 'Respuesta tomada de apuntes.',
+        source: 'apuntes.txt',
+        topicId: topic?.id,
+        topicName: topic?.name,
+      ),
+    ];
+    return AssessmentProposalDto(
+      questions: questions.take(maxQuestions <= 0 ? 10 : maxQuestions).toList(),
+      message: 'Se generaron preguntas de prueba.',
+    );
+  }
+
+  @override
+  Future<AssessmentResultDto> gradeAssessment(
+    int subjectId,
+    List<AssessmentQuestionDto> questions,
+    List<AssessmentAnswerDto> answers,
+    double threshold,
+  ) async {
+    final configured = assessmentResult;
+    if (configured != null) {
+      return configured;
+    }
+    final byId = {
+      for (final answer in answers) answer.questionId: answer.answer,
+    };
+    final details = <AssessmentQuestionResultDto>[];
+    var correct = 0;
+    for (final question in questions) {
+      final answer = byId[question.id]?.trim() ?? '';
+      final isCorrect = question.kind == 'respuesta_corta'
+          ? answer.isNotEmpty
+          : answer == question.correctAnswer;
+      if (isCorrect) {
+        correct += 1;
+      }
+      details.add(
+        AssessmentQuestionResultDto(
+          questionId: question.id,
+          correct: isCorrect,
+          similarity: isCorrect ? 1 : 0,
+          expected: question.correctAnswer,
+          feedback: isCorrect ? 'Correcto.' : 'Revisa la respuesta esperada.',
+          source: question.source,
+        ),
+      );
+    }
+    final total = questions.length;
+    final score = total == 0 ? 0.0 : correct / total;
+    final passed = score >= threshold;
+    final assessment = AssessmentDto(
+      id: _nextAssessmentId++,
+      subjectId: subjectId,
+      kind: 'cuestionario',
+      score: score,
+      date: _iso(DateTime.now()),
+      correct: correct,
+      total: total,
+      threshold: threshold,
+    );
+    _assessments.putIfAbsent(subjectId, () => <AssessmentDto>[]).add(assessment);
+    return AssessmentResultDto(
+      assessmentId: assessment.id,
+      score: score,
+      correct: correct,
+      total: total,
+      passed: passed,
+      message: passed
+          ? 'Cuestionario aprobado.'
+          : 'Cuestionario no aprobado.',
+      details: details,
+    );
+  }
+
+  @override
+  Future<List<AssessmentDto>> listAssessments(int subjectId) async {
+    return List<AssessmentDto>.of(
+      _assessments[subjectId] ?? const <AssessmentDto>[],
+    );
+  }
 
   TopicDto addTopic(
     int subjectId, {

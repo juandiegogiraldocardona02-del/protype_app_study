@@ -1,4 +1,5 @@
 pub mod ai;
+pub mod assessments;
 pub mod backup;
 pub mod bridge;
 pub mod db;

@@ -6,8 +6,8 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
 use crate::domain::{
-    AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview, PlanSettings,
-    PlannedSession, Profile, ReviewResult, Session, Streak, Subject, Topic, XpConfig,
+    Assessment, AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview,
+    PlanSettings, PlannedSession, Profile, ReviewResult, Session, Streak, Subject, Topic, XpConfig,
 };
 use crate::error::{CoreError, CoreResult};
 
@@ -20,6 +20,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (3, include_str!("../../migrations/0003_planning.sql")),
     (4, include_str!("../../migrations/0004_learning.sql")),
     (5, include_str!("../../migrations/0005_gamification.sql")),
+    (6, include_str!("../../migrations/0006_assessments.sql")),
 ];
 
 const MAX_NAME_LEN: usize = 120;
@@ -36,6 +37,16 @@ pub struct NewDocument {
     pub extraction_status: String,
     pub extraction_message: Option<String>,
     pub chunks: Vec<String>,
+}
+
+pub struct NewAssessment<'a> {
+    pub subject_id: i64,
+    pub kind: &'a str,
+    pub score: f64,
+    pub correct: i64,
+    pub total: i64,
+    pub threshold: f64,
+    pub topic_scores: &'a [(i64, i64, i64)],
 }
 
 pub struct Database {
@@ -1023,6 +1034,168 @@ impl Database {
         Ok(snippets)
     }
 
+    pub fn record_assessment(&mut self, new: NewAssessment<'_>) -> CoreResult<Assessment> {
+        let NewAssessment {
+            subject_id,
+            kind,
+            score,
+            correct,
+            total,
+            threshold,
+            topic_scores,
+        } = new;
+        self.get_subject(subject_id)?;
+        let kind = kind.trim();
+        if kind.is_empty() {
+            return Err(CoreError::Validation(
+                "el tipo de evaluación no puede estar vacío".into(),
+            ));
+        }
+        if !score.is_finite() || !(0.0..=1.0).contains(&score) {
+            return Err(CoreError::Validation(
+                "la puntuación debe estar entre 0 y 1".into(),
+            ));
+        }
+        if !threshold.is_finite() || !(0.0..=1.0).contains(&threshold) {
+            return Err(CoreError::Validation(
+                "el umbral debe estar entre 0 y 1".into(),
+            ));
+        }
+        if total <= 0 || correct < 0 || correct > total {
+            return Err(CoreError::Validation(
+                "el número de aciertos no es válido".into(),
+            ));
+        }
+        for (topic_id, topic_correct, topic_total) in topic_scores {
+            if *topic_total <= 0 || *topic_correct < 0 || topic_correct > topic_total {
+                return Err(CoreError::Validation(
+                    "el resultado por tema no es válido".into(),
+                ));
+            }
+            let topic_subject: i64 = self
+                .conn
+                .query_row(
+                    "SELECT subject_id FROM topics WHERE id = ?1",
+                    params![topic_id],
+                    |row| row.get(0),
+                )
+                .optional()?
+                .ok_or_else(|| CoreError::NotFound(format!("tema {topic_id}")))?;
+            if topic_subject != subject_id {
+                return Err(CoreError::Validation(
+                    "el tema evaluado no pertenece a la asignatura".into(),
+                ));
+            }
+        }
+
+        let config = self.get_xp_config(subject_id)?;
+        let profile_id: i64 = self.conn.query_row(
+            "SELECT profile_id FROM subjects WHERE id = ?1",
+            params![subject_id],
+            |row| row.get(0),
+        )?;
+        let now = Local::now();
+        let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO assessments
+                (subject_id, tipo, puntuacion, fecha, aciertos, total, umbral)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![subject_id, kind, score, timestamp, correct, total, threshold],
+        )?;
+        let assessment_id = tx.last_insert_rowid();
+        for (topic_id, topic_correct, topic_total) in topic_scores {
+            let topic_score = *topic_correct as f64 / *topic_total as f64;
+            tx.execute(
+                "INSERT INTO assessment_topics
+                    (assessment_id, topic_id, aciertos, total, puntuacion)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    assessment_id,
+                    topic_id,
+                    topic_correct,
+                    topic_total,
+                    topic_score
+                ],
+            )?;
+        }
+        if score >= threshold {
+            insert_xp_once(
+                &tx,
+                profile_id,
+                &format!("cuestionario:{assessment_id}"),
+                config.quiz_passed,
+                &timestamp,
+            )?;
+        }
+        record_streak_tx(
+            &tx,
+            profile_id,
+            now.date_naive(),
+            config.streak_7d,
+            &timestamp,
+        )?;
+        log_change(&tx, "assessment", assessment_id, "crear")?;
+        tx.commit()?;
+
+        for (topic_id, _, _) in topic_scores {
+            self.refresh_topic_mastery(*topic_id)?;
+        }
+
+        Ok(Assessment {
+            id: assessment_id,
+            subject_id,
+            kind: kind.to_string(),
+            score,
+            date: timestamp,
+            correct,
+            total,
+            threshold,
+        })
+    }
+
+    pub fn list_assessments(&self, subject_id: i64) -> CoreResult<Vec<Assessment>> {
+        self.get_subject(subject_id)?;
+        let mut stmt = self.conn.prepare(
+            "SELECT id, subject_id, tipo, puntuacion, fecha, aciertos, total, umbral
+             FROM assessments WHERE subject_id = ?1
+             ORDER BY fecha DESC, id DESC",
+        )?;
+        let rows = stmt.query_map(params![subject_id], |row| {
+            Ok(Assessment {
+                id: row.get(0)?,
+                subject_id: row.get(1)?,
+                kind: row.get(2)?,
+                score: row.get(3)?,
+                date: row.get(4)?,
+                correct: row.get(5)?,
+                total: row.get(6)?,
+                threshold: row.get(7)?,
+            })
+        })?;
+        let mut assessments = Vec::new();
+        for row in rows {
+            assessments.push(row?);
+        }
+        Ok(assessments)
+    }
+
+    pub(crate) fn assessment_topic_average(&self, topic_id: i64) -> CoreResult<Option<f64>> {
+        Ok(self.conn.query_row(
+            "SELECT AVG(puntuacion) FROM (
+                SELECT at.puntuacion
+                FROM assessment_topics at
+                JOIN assessments a ON a.id = at.assessment_id
+                WHERE at.topic_id = ?1
+                ORDER BY a.fecha DESC, a.id DESC
+                LIMIT 5
+             )",
+            params![topic_id],
+            |row| row.get(0),
+        )?)
+    }
+
     pub(crate) fn refresh_topic_mastery(&mut self, topic_id: i64) -> CoreResult<f64> {
         let review_average: Option<f64> = self.conn.query_row(
             "SELECT AVG(calidad) FROM (
@@ -1040,9 +1213,14 @@ impl Database {
             params![topic_id],
             |row| row.get(0),
         )?;
+        let assessment_average = self.assessment_topic_average(topic_id)?;
         let review_component = review_average.unwrap_or(0.0) / 5.0;
         let time_component = (minutes as f64 / 120.0).clamp(0.0, 1.0);
-        let mastery = (0.6 * review_component + 0.4 * time_component).clamp(0.0, 1.0);
+        let base = (0.6 * review_component + 0.4 * time_component).clamp(0.0, 1.0);
+        let mastery = match assessment_average {
+            Some(average) => (0.7 * base + 0.3 * average).clamp(0.0, 1.0),
+            None => base,
+        };
         let topic = self.get_topic(topic_id)?;
         let config = self.get_xp_config(topic.subject_id)?;
         let profile_id: i64 = self.conn.query_row(

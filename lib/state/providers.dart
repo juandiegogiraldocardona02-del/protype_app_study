@@ -192,6 +192,8 @@ class DocumentActions {
   }
 
   Future<bool> ocrAvailable() => _repo.ocrAvailable();
+
+  Future<bool> audioAvailable() => _repo.audioAvailable();
 }
 
 final documentActionsProvider = Provider<DocumentActions>(
@@ -306,6 +308,51 @@ final masteryProvider = FutureProvider.family<List<MasteryOverviewDto>, int>((
 ) {
   return ref.watch(repositoryProvider).listMastery(subjectId);
 });
+
+final assessmentsProvider = FutureProvider.family<List<AssessmentDto>, int>((
+  ref,
+  subjectId,
+) {
+  return ref.watch(repositoryProvider).listAssessments(subjectId);
+});
+
+final audioAvailableProvider = FutureProvider<bool>((ref) {
+  return ref.watch(repositoryProvider).audioAvailable();
+});
+
+class AssessmentActions {
+  AssessmentActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<AssessmentProposalDto> generate(int subjectId, int maxQuestions) =>
+      _repo.generateAssessment(subjectId, maxQuestions);
+
+  Future<AssessmentResultDto> grade(
+    int subjectId,
+    List<AssessmentQuestionDto> questions,
+    List<AssessmentAnswerDto> answers,
+    double threshold,
+  ) async {
+    final result = await _repo.gradeAssessment(
+      subjectId,
+      questions,
+      answers,
+      threshold,
+    );
+    _ref.invalidate(assessmentsProvider(subjectId));
+    _ref.invalidate(masteryProvider(subjectId));
+    _ref.invalidate(topicsProvider(subjectId));
+    _ref.invalidate(gamificationProvider);
+    return result;
+  }
+}
+
+final assessmentActionsProvider = Provider<AssessmentActions>(
+  (ref) => AssessmentActions(ref),
+);
 
 class FlashcardActions {
   FlashcardActions(this._ref);
@@ -475,6 +522,7 @@ class BackupActions {
     _ref.invalidate(flashcardsProvider);
     _ref.invalidate(dueFlashcardsProvider);
     _ref.invalidate(masteryProvider);
+    _ref.invalidate(assessmentsProvider);
     _ref.invalidate(gamificationProvider);
     _ref.invalidate(xpConfigProvider);
   }

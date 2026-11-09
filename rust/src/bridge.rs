@@ -45,6 +45,64 @@ pub struct ImportOutcomeDto {
 }
 
 #[derive(Debug, Clone)]
+pub struct AssessmentQuestionDto {
+    pub id: i64,
+    pub kind: String,
+    pub prompt: String,
+    pub options: Vec<String>,
+    pub correct_answer: String,
+    pub explanation: String,
+    pub source: String,
+    pub topic_id: Option<i64>,
+    pub topic_name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssessmentProposalDto {
+    pub questions: Vec<AssessmentQuestionDto>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssessmentAnswerDto {
+    pub question_id: i64,
+    pub answer: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssessmentQuestionResultDto {
+    pub question_id: i64,
+    pub correct: bool,
+    pub similarity: f64,
+    pub expected: String,
+    pub feedback: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssessmentResultDto {
+    pub assessment_id: i64,
+    pub score: f64,
+    pub correct: i64,
+    pub total: i64,
+    pub passed: bool,
+    pub message: String,
+    pub details: Vec<AssessmentQuestionResultDto>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssessmentDto {
+    pub id: i64,
+    pub subject_id: i64,
+    pub kind: String,
+    pub score: f64,
+    pub date: String,
+    pub correct: i64,
+    pub total: i64,
+    pub threshold: f64,
+}
+
+#[derive(Debug, Clone)]
 pub struct TopicDto {
     pub id: i64,
     pub subject_id: i64,
@@ -305,6 +363,98 @@ impl From<domain::ImportOutcome> for ImportOutcomeDto {
             duplicate: value.duplicate,
             ocr_used: value.ocr_used,
             message: value.message,
+        }
+    }
+}
+
+impl From<domain::AssessmentQuestion> for AssessmentQuestionDto {
+    fn from(value: domain::AssessmentQuestion) -> Self {
+        Self {
+            id: value.id,
+            kind: value.kind,
+            prompt: value.prompt,
+            options: value.options,
+            correct_answer: value.correct_answer,
+            explanation: value.explanation,
+            source: value.source,
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+        }
+    }
+}
+
+impl From<AssessmentQuestionDto> for domain::AssessmentQuestion {
+    fn from(value: AssessmentQuestionDto) -> Self {
+        Self {
+            id: value.id,
+            kind: value.kind,
+            prompt: value.prompt,
+            options: value.options,
+            correct_answer: value.correct_answer,
+            explanation: value.explanation,
+            source: value.source,
+            topic_id: value.topic_id,
+            topic_name: value.topic_name,
+        }
+    }
+}
+
+impl From<domain::AssessmentProposal> for AssessmentProposalDto {
+    fn from(value: domain::AssessmentProposal) -> Self {
+        Self {
+            questions: value.questions.into_iter().map(Into::into).collect(),
+            message: value.message,
+        }
+    }
+}
+
+impl From<AssessmentAnswerDto> for domain::AssessmentAnswer {
+    fn from(value: AssessmentAnswerDto) -> Self {
+        Self {
+            question_id: value.question_id,
+            answer: value.answer,
+        }
+    }
+}
+
+impl From<domain::AssessmentQuestionResult> for AssessmentQuestionResultDto {
+    fn from(value: domain::AssessmentQuestionResult) -> Self {
+        Self {
+            question_id: value.question_id,
+            correct: value.correct,
+            similarity: value.similarity,
+            expected: value.expected,
+            feedback: value.feedback,
+            source: value.source,
+        }
+    }
+}
+
+impl From<domain::AssessmentResult> for AssessmentResultDto {
+    fn from(value: domain::AssessmentResult) -> Self {
+        Self {
+            assessment_id: value.assessment_id,
+            score: value.score,
+            correct: value.correct,
+            total: value.total,
+            passed: value.passed,
+            message: value.message,
+            details: value.details.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<domain::Assessment> for AssessmentDto {
+    fn from(value: domain::Assessment) -> Self {
+        Self {
+            id: value.id,
+            subject_id: value.subject_id,
+            kind: value.kind,
+            score: value.score,
+            date: value.date,
+            correct: value.correct,
+            total: value.total,
+            threshold: value.threshold,
         }
     }
 }
@@ -671,6 +821,41 @@ pub fn delete_document(id: i64) -> anyhow::Result<()> {
 
 pub fn ocr_available() -> bool {
     crate::documents::ocr_available()
+}
+
+pub fn audio_available() -> bool {
+    crate::documents::audio_available()
+}
+
+pub fn generate_assessment(
+    subject_id: i64,
+    max_questions: i64,
+) -> anyhow::Result<AssessmentProposalDto> {
+    let proposal = db::with_db(|database| {
+        crate::assessments::generate_assessment(database, subject_id, max_questions)
+    })?;
+    Ok(proposal.into())
+}
+
+pub fn grade_assessment(
+    subject_id: i64,
+    questions: Vec<AssessmentQuestionDto>,
+    answers: Vec<AssessmentAnswerDto>,
+    threshold: f64,
+) -> anyhow::Result<AssessmentResultDto> {
+    let questions: Vec<domain::AssessmentQuestion> =
+        questions.into_iter().map(Into::into).collect();
+    let answers: Vec<domain::AssessmentAnswer> = answers.into_iter().map(Into::into).collect();
+    let result = db::with_db(|database| {
+        crate::assessments::grade_assessment(database, subject_id, &questions, &answers, threshold)
+    })?;
+    Ok(result.into())
+}
+
+pub fn list_assessments(subject_id: i64) -> anyhow::Result<Vec<AssessmentDto>> {
+    let assessments =
+        db::with_db(|database| crate::assessments::list_assessments(database, subject_id))?;
+    Ok(assessments.into_iter().map(AssessmentDto::from).collect())
 }
 
 pub fn list_topics(subject_id: i64) -> anyhow::Result<Vec<TopicDto>> {

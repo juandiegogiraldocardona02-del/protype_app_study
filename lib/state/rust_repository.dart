@@ -46,6 +46,35 @@ class RustStudyRepository implements StudyRepository {
   Future<bool> ocrAvailable() => rust.ocrAvailable();
 
   @override
+  Future<bool> audioAvailable() => rust.audioAvailable();
+
+  @override
+  Future<AssessmentProposalDto> generateAssessment(
+    int subjectId,
+    int maxQuestions,
+  ) => rust.generateAssessment(
+    subjectId: subjectId,
+    maxQuestions: maxQuestions,
+  );
+
+  @override
+  Future<AssessmentResultDto> gradeAssessment(
+    int subjectId,
+    List<AssessmentQuestionDto> questions,
+    List<AssessmentAnswerDto> answers,
+    double threshold,
+  ) => rust.gradeAssessment(
+    subjectId: subjectId,
+    questions: questions,
+    answers: answers,
+    threshold: threshold,
+  );
+
+  @override
+  Future<List<AssessmentDto>> listAssessments(int subjectId) =>
+      rust.listAssessments(subjectId: subjectId);
+
+  @override
   Future<List<TopicDto>> listTopics(int subjectId) =>
       rust.listTopics(subjectId: subjectId);
 

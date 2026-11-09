@@ -31,6 +31,12 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         set(CARGOKIT_TEMP_DIR "${CMAKE_CURRENT_BINARY_DIR}/cargokit_build")
     endif()
 
+    if (DEFINED ENV{STUDY_PLANNER_CARGOKIT_PREBUILT_DIR})
+        set(CARGOKIT_PREBUILT_DIR "$ENV{STUDY_PLANNER_CARGOKIT_PREBUILT_DIR}")
+    else()
+        set(CARGOKIT_PREBUILT_DIR "")
+    endif()
+
     if (FLUTTER_TARGET_PLATFORM)
         set(CARGOKIT_TARGET_PLATFORM "${FLUTTER_TARGET_PLATFORM}")
     else()
@@ -97,14 +103,30 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
                  VERBATIM
                )
     else()
-        add_custom_command(
-            OUTPUT
-            ${OUTPUT_LIB}
-            "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
-            COMMAND ${CMAKE_COMMAND} -E env ${CARGOKIT_ENV}
-            "${cargokit_cmake_root}/run_build_tool${SCRIPT_EXTENSION}" build-cmake
-            VERBATIM
-        )
+        if (CARGOKIT_PREBUILT_DIR)
+            add_custom_command(
+                OUTPUT
+                ${OUTPUT_LIB}
+                "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${CARGOKIT_OUTPUT_DIR}"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CARGOKIT_PREBUILT_DIR}/${CARGOKIT_LIB_FULL_NAME}"
+                "${OUTPUT_LIB}"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CARGOKIT_PREBUILT_DIR}/${CARGOKIT_LIB_FULL_NAME}.lib"
+                "${OUTPUT_LIB}.lib"
+                VERBATIM
+            )
+        else()
+            add_custom_command(
+                OUTPUT
+                ${OUTPUT_LIB}
+                "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
+                COMMAND ${CMAKE_COMMAND} -E env ${CARGOKIT_ENV}
+                "${cargokit_cmake_root}/run_build_tool${SCRIPT_EXTENSION}" build-cmake
+                VERBATIM
+            )
+        endif()
     endif()
 
 

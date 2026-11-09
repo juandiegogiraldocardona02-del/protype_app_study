@@ -220,6 +220,26 @@ struct AssessmentRecord {
     kind: String,
     score: f64,
     date: String,
+    #[serde(default)]
+    correct: i64,
+    #[serde(default)]
+    total: i64,
+    #[serde(default = "default_threshold")]
+    threshold: f64,
+    #[serde(default)]
+    topics: Vec<AssessmentTopicRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct AssessmentTopicRecord {
+    topic_old_id: i64,
+    correct: i64,
+    total: i64,
+    score: f64,
+}
+
+fn default_threshold() -> f64 {
+    0.6
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1233,17 +1253,40 @@ fn insert_subject(
 
     for assessment in &subject.assessments {
         tx.execute(
-            "INSERT INTO assessments (subject_id, tipo, puntuacion, fecha)
-             VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO assessments
+                (subject_id, tipo, puntuacion, fecha, aciertos, total, umbral)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 subject_id,
                 assessment.kind,
                 assessment.score,
-                assessment.date
+                assessment.date,
+                assessment.correct,
+                assessment.total,
+                assessment.threshold
             ],
         )?;
-        maps.assessments
-            .insert(assessment.old_id, tx.last_insert_rowid());
+        let assessment_id = tx.last_insert_rowid();
+        maps.assessments.insert(assessment.old_id, assessment_id);
+        for topic in &assessment.topics {
+            let topic_id = maps
+                .topics
+                .get(&topic.topic_old_id)
+                .copied()
+                .ok_or_else(|| CoreError::Validation("evaluación sin tema".into()))?;
+            tx.execute(
+                "INSERT INTO assessment_topics
+                    (assessment_id, topic_id, aciertos, total, puntuacion)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    assessment_id,
+                    topic_id,
+                    topic.correct,
+                    topic.total,
+                    topic.score
+                ],
+            )?;
+        }
     }
 
     if let Some(settings) = &subject.plan_settings {
@@ -1505,8 +1548,8 @@ fn collect_subject(conn: &Connection, subject_id: i64) -> CoreResult<SubjectReco
     let mut assessments = Vec::new();
     {
         let mut stmt = conn.prepare(
-            "SELECT id, tipo, puntuacion, fecha FROM assessments
-             WHERE subject_id = ?1 ORDER BY id ASC",
+            "SELECT id, tipo, puntuacion, fecha, aciertos, total, umbral
+             FROM assessments WHERE subject_id = ?1 ORDER BY id ASC",
         )?;
         let rows = stmt.query_map(params![subject_id], |row| {
             Ok(AssessmentRecord {
@@ -1514,10 +1557,31 @@ fn collect_subject(conn: &Connection, subject_id: i64) -> CoreResult<SubjectReco
                 kind: row.get(1)?,
                 score: row.get(2)?,
                 date: row.get(3)?,
+                correct: row.get(4)?,
+                total: row.get(5)?,
+                threshold: row.get(6)?,
+                topics: Vec::new(),
             })
         })?;
         for row in rows {
             assessments.push(row?);
+        }
+    }
+    for assessment in &mut assessments {
+        let mut stmt = conn.prepare(
+            "SELECT topic_id, aciertos, total, puntuacion
+             FROM assessment_topics WHERE assessment_id = ?1 ORDER BY id ASC",
+        )?;
+        let rows = stmt.query_map(params![assessment.old_id], |row| {
+            Ok(AssessmentTopicRecord {
+                topic_old_id: row.get(0)?,
+                correct: row.get(1)?,
+                total: row.get(2)?,
+                score: row.get(3)?,
+            })
+        })?;
+        for row in rows {
+            assessment.topics.push(row?);
         }
     }
 
@@ -1669,6 +1733,17 @@ mod tests {
         database
             .create_flashcard(topic.id, "¿Qué es un vector?", "Una magnitud con dirección")
             .expect("tarjeta");
+        database
+            .record_assessment(crate::db::NewAssessment {
+                subject_id: subject.id,
+                kind: "cuestionario",
+                score: 0.75,
+                correct: 3,
+                total: 4,
+                threshold: 0.6,
+                topic_scores: &[(topic.id, 2, 3)],
+            })
+            .expect("evaluación");
         let settings = PlanSettings {
             subject_id: subject.id,
             session_minutes: 45,
@@ -1741,6 +1816,21 @@ mod tests {
         assert!(Path::new(&documents[0].local_path).is_file());
         let cards = target.list_flashcards(subject.id).expect("tarjetas");
         assert_eq!(cards.len(), 1);
+        let assessments = target.list_assessments(subject.id).expect("evaluaciones");
+        assert_eq!(assessments.len(), 1);
+        assert_eq!(assessments[0].correct, 3);
+        assert_eq!(assessments[0].total, 4);
+        let assessment_topics: i64 = target
+            .connection()
+            .query_row(
+                "SELECT COUNT(*) FROM assessment_topics at
+                 JOIN assessments a ON a.id = at.assessment_id
+                 WHERE a.subject_id = ?1",
+                params![subject.id],
+                |row| row.get(0),
+            )
+            .expect("temas evaluados");
+        assert_eq!(assessment_topics, 1);
         let reviews: i64 = target
             .connection()
             .query_row(

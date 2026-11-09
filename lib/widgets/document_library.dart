@@ -17,6 +17,12 @@ const List<String> _allowedExtensions = <String>[
   'tif',
   'tiff',
   'webp',
+  'mp3',
+  'wav',
+  'm4a',
+  'aac',
+  'ogg',
+  'flac',
 ];
 
 class DocumentLibrary extends ConsumerStatefulWidget {
@@ -163,6 +169,7 @@ class _DocumentLibraryState extends ConsumerState<DocumentLibrary> {
                   (key: 'pdf', label: 'PDF'),
                   (key: 'txt', label: 'TXT'),
                   (key: 'imagen', label: 'Imágenes'),
+                  (key: 'audio', label: 'Audio'),
                 ])
                   ChoiceChip(
                     label: Text(option.label),
@@ -197,8 +204,9 @@ class _DocumentLibraryState extends ConsumerState<DocumentLibrary> {
                   icon: Icons.folder_open_outlined,
                   title: 'Biblioteca vacía',
                   message:
-                      'Importa PDF, TXT o imágenes escaneadas. La extracción de '
-                      'texto y el OCR opcional funcionan sin conexión.',
+                      'Importa PDF, TXT, imágenes escaneadas o audio. La '
+                      'extracción de texto, el OCR y la transcripción opcionales '
+                      'funcionan sin conexión.',
                   action: FilledButton.icon(
                     onPressed: _importing ? null : _pickAndImport,
                     icon: const Icon(Icons.upload_file_outlined),
@@ -265,6 +273,8 @@ class _DocumentLibraryState extends ConsumerState<DocumentLibrary> {
         return Icons.description_outlined;
       case 'imagen':
         return Icons.image_outlined;
+      case 'audio':
+        return Icons.audiotrack_outlined;
       default:
         return Icons.insert_drive_file_outlined;
     }
@@ -276,6 +286,12 @@ class _DocumentLibraryState extends ConsumerState<DocumentLibrary> {
         return '${document.textChars} caracteres';
       case 'ocr_no_disponible':
         return 'sin OCR';
+      case 'whisper_no_disponible':
+        return 'sin transcripción';
+      case 'whisper_sin_modelo':
+        return 'sin modelo de voz';
+      case 'audio_sin_ffmpeg':
+        return 'sin ffmpeg';
       case 'vacio':
         return 'sin texto';
       case 'error':

@@ -19,6 +19,7 @@ pub enum DocumentKind {
     Pdf,
     Text,
     Image,
+    Audio,
 }
 
 impl DocumentKind {
@@ -27,6 +28,7 @@ impl DocumentKind {
             Self::Pdf => "pdf",
             Self::Text => "txt",
             Self::Image => "imagen",
+            Self::Audio => "audio",
         }
     }
 
@@ -42,8 +44,9 @@ impl DocumentKind {
             "pdf" => Ok(Self::Pdf),
             "txt" => Ok(Self::Text),
             "png" | "jpg" | "jpeg" | "bmp" | "tif" | "tiff" | "webp" => Ok(Self::Image),
+            "mp3" | "wav" | "m4a" | "aac" | "ogg" | "flac" => Ok(Self::Audio),
             other => Err(CoreError::Validation(format!(
-                "formato «{other}» no soportado en esta etapa (usa PDF, TXT o imágenes)"
+                "formato «{other}» no soportado (usa PDF, TXT, imágenes o audio)"
             ))),
         }
     }
@@ -69,6 +72,58 @@ pub fn ocr_available() -> bool {
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)
+}
+
+pub fn whisper_binary() -> String {
+    std::env::var("STUDY_PLANNER_WHISPER_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "whisper-cli".to_string())
+}
+
+pub fn whisper_available() -> bool {
+    Command::new(whisper_binary())
+        .arg("--help")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+pub fn whisper_model() -> Option<PathBuf> {
+    if let Ok(value) = std::env::var("STUDY_PLANNER_WHISPER_MODEL") {
+        let path = PathBuf::from(value.trim());
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    let directory = crate::db::models_directory()?;
+    let mut candidates: Vec<PathBuf> = std::fs::read_dir(directory)
+        .ok()?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.is_file()
+                && path
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .map(|value| value.eq_ignore_ascii_case("bin"))
+                    .unwrap_or(false)
+        })
+        .filter(|path| {
+            path.file_name()
+                .and_then(|value| value.to_str())
+                .map(|name| {
+                    name.to_ascii_lowercase().contains("whisper") || name.starts_with("ggml-")
+                })
+                .unwrap_or(false)
+        })
+        .collect();
+    candidates.sort();
+    candidates.into_iter().next()
+}
+
+pub fn audio_available() -> bool {
+    whisper_available() && whisper_model().is_some()
 }
 
 pub fn import_document(
@@ -194,6 +249,7 @@ fn extract(path: &Path, kind: DocumentKind) -> Extraction {
                 ocr_used: false,
             },
         },
+        DocumentKind::Audio => transcribe_audio(path),
         DocumentKind::Image => {
             if !ocr_available() {
                 return Extraction {
@@ -222,6 +278,169 @@ fn extract(path: &Path, kind: DocumentKind) -> Extraction {
                 },
             }
         }
+    }
+}
+
+fn ffmpeg_binary() -> String {
+    std::env::var("STUDY_PLANNER_FFMPEG")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "ffmpeg".to_string())
+}
+
+fn ffmpeg_available() -> bool {
+    Command::new(ffmpeg_binary())
+        .arg("-version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+fn transcribe_audio(path: &Path) -> Extraction {
+    if !whisper_available() {
+        return Extraction {
+            text: String::new(),
+            status: "whisper_no_disponible".to_string(),
+            message: Some(
+                "whisper.cpp no está instalado; el audio se importó sin transcripción. \
+                 Define STUDY_PLANNER_WHISPER_BIN para activarla."
+                    .to_string(),
+            ),
+            ocr_used: false,
+        };
+    }
+    let Some(model) = whisper_model() else {
+        return Extraction {
+            text: String::new(),
+            status: "whisper_sin_modelo".to_string(),
+            message: Some(
+                "No se encontró un modelo de whisper.cpp (ggml-*.bin). \
+                 Define STUDY_PLANNER_WHISPER_MODEL o colócalo en la carpeta models."
+                    .to_string(),
+            ),
+            ocr_used: false,
+        };
+    };
+
+    let mut temporary = Vec::new();
+    let wav_path = if path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| value.eq_ignore_ascii_case("wav"))
+        .unwrap_or(false)
+    {
+        path.to_path_buf()
+    } else {
+        if !ffmpeg_available() {
+            return Extraction {
+                text: String::new(),
+                status: "audio_sin_ffmpeg".to_string(),
+                message: Some(
+                    "El audio requiere ffmpeg para convertirse a WAV; se importó sin \
+                     transcripción. Instala ffmpeg o define STUDY_PLANNER_FFMPEG."
+                        .to_string(),
+                ),
+                ocr_used: false,
+            };
+        }
+        let wav = temporary_path("wav");
+        temporary.push(wav.clone());
+        if let Err(error) = convert_to_wav(path, &wav) {
+            cleanup_paths(&temporary);
+            return Extraction {
+                text: String::new(),
+                status: "error".to_string(),
+                message: Some(format!("No se pudo convertir el audio con ffmpeg: {error}")),
+                ocr_used: false,
+            };
+        }
+        wav
+    };
+
+    let output_base = temporary_path("whisper");
+    temporary.push(output_base.with_extension("txt"));
+    let result = run_whisper(&model, &wav_path, &output_base);
+    let extraction = match result {
+        Ok(text) => Extraction {
+            text,
+            status: "ok".to_string(),
+            message: None,
+            ocr_used: false,
+        },
+        Err(error) => Extraction {
+            text: String::new(),
+            status: "error".to_string(),
+            message: Some(format!("La transcripción falló: {error}")),
+            ocr_used: false,
+        },
+    };
+    cleanup_paths(&temporary);
+    extraction
+}
+
+fn convert_to_wav(input: &Path, output: &Path) -> CoreResult<()> {
+    let result = Command::new(ffmpeg_binary())
+        .arg("-y")
+        .arg("-i")
+        .arg(input)
+        .arg("-ar")
+        .arg("16000")
+        .arg("-ac")
+        .arg("1")
+        .arg("-c:a")
+        .arg("pcm_s16le")
+        .arg(output)
+        .output()?;
+    if !result.status.success() {
+        return Err(CoreError::Unexpected(
+            String::from_utf8_lossy(&result.stderr).trim().to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn run_whisper(model: &Path, wav: &Path, output_base: &Path) -> CoreResult<String> {
+    let language = std::env::var("STUDY_PLANNER_WHISPER_LANG")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "es".to_string());
+    let result = Command::new(whisper_binary())
+        .arg("-m")
+        .arg(model)
+        .arg("-f")
+        .arg(wav)
+        .arg("-l")
+        .arg(language.trim())
+        .arg("-otxt")
+        .arg("-of")
+        .arg(output_base)
+        .output()?;
+    if !result.status.success() {
+        return Err(CoreError::Unexpected(
+            String::from_utf8_lossy(&result.stderr).trim().to_string(),
+        ));
+    }
+    let text_path = output_base.with_extension("txt");
+    let text = std::fs::read_to_string(&text_path)?;
+    Ok(text)
+}
+
+fn temporary_path(extension: &str) -> PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    std::env::temp_dir().join(format!(
+        "study_planner_audio_{}_{}.{}",
+        std::process::id(),
+        nanos,
+        extension
+    ))
+}
+
+fn cleanup_paths(paths: &[PathBuf]) {
+    for path in paths {
+        let _ = std::fs::remove_file(path);
     }
 }
 
@@ -444,6 +663,27 @@ mod tests {
         if !ocr_available() {
             assert_eq!(outcome.document.extraction_status, "ocr_no_disponible");
             assert!(!outcome.ocr_used);
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn audio_is_imported_even_without_whisper() {
+        let (mut db, subject_id, dir) = setup("audio");
+        let path = dir.join("clase.mp3");
+        std::fs::write(&path, b"ID3audio").expect("escribir audio");
+
+        let outcome = import(&mut db, subject_id, &path);
+
+        assert_eq!(outcome.document.kind, "audio");
+        assert_eq!(outcome.document.text_chars, 0);
+        assert!(!outcome.ocr_used);
+        if !audio_available() {
+            assert!(matches!(
+                outcome.document.extraction_status.as_str(),
+                "whisper_no_disponible" | "whisper_sin_modelo" | "audio_sin_ffmpeg"
+            ));
         }
 
         let _ = std::fs::remove_dir_all(&dir);

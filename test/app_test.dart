@@ -190,6 +190,39 @@ void main() {
     expect((await repository.listTopics(1)), hasLength(1));
   });
 
+  testWidgets('genera y corrige un cuestionario desde Evaluaciones', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+    repository.addTopic(1, name: 'La célula');
+    repository.addDocument(1, name: 'Apuntes.txt', kind: 'txt');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Evaluaciones'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Generar cuestionario'), findsOneWidget);
+    await tester.tap(find.text('Generar cuestionario'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Cuestionario (3 preguntas)'), findsOneWidget);
+    await tester.tap(find.text('Corregir'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resultado'), findsOneWidget);
+    expect(find.textContaining('Cuestionario no aprobado'), findsOneWidget);
+    await tester.tap(find.text('Cerrar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Historial'), findsOneWidget);
+    expect(await repository.listAssessments(1), hasLength(1));
+  });
+
   testWidgets('genera y guarda un plan desde la agenda', (tester) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');

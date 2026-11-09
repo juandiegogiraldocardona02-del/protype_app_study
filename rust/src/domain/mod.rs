@@ -148,6 +148,64 @@ pub struct MasteryOverview {
     pub reviews: i64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssessmentQuestion {
+    pub id: i64,
+    pub kind: String,
+    pub prompt: String,
+    pub options: Vec<String>,
+    pub correct_answer: String,
+    pub explanation: String,
+    pub source: String,
+    pub topic_id: Option<i64>,
+    pub topic_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssessmentProposal {
+    pub questions: Vec<AssessmentQuestion>,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssessmentAnswer {
+    pub question_id: i64,
+    pub answer: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssessmentQuestionResult {
+    pub question_id: i64,
+    pub correct: bool,
+    pub similarity: f64,
+    pub expected: String,
+    pub feedback: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AssessmentResult {
+    pub assessment_id: i64,
+    pub score: f64,
+    pub correct: i64,
+    pub total: i64,
+    pub passed: bool,
+    pub message: String,
+    pub details: Vec<AssessmentQuestionResult>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assessment {
+    pub id: i64,
+    pub subject_id: i64,
+    pub kind: String,
+    pub score: f64,
+    pub date: String,
+    pub correct: i64,
+    pub total: i64,
+    pub threshold: f64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct XpConfig {

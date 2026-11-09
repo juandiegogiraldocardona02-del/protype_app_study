@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -67,6 +67,33 @@ Future<void> deleteDocument({required PlatformInt64 id}) =>
     RustLib.instance.api.crateBridgeDeleteDocument(id: id);
 
 Future<bool> ocrAvailable() => RustLib.instance.api.crateBridgeOcrAvailable();
+
+Future<bool> audioAvailable() =>
+    RustLib.instance.api.crateBridgeAudioAvailable();
+
+Future<AssessmentProposalDto> generateAssessment({
+  required PlatformInt64 subjectId,
+  required PlatformInt64 maxQuestions,
+}) => RustLib.instance.api.crateBridgeGenerateAssessment(
+  subjectId: subjectId,
+  maxQuestions: maxQuestions,
+);
+
+Future<AssessmentResultDto> gradeAssessment({
+  required PlatformInt64 subjectId,
+  required List<AssessmentQuestionDto> questions,
+  required List<AssessmentAnswerDto> answers,
+  required double threshold,
+}) => RustLib.instance.api.crateBridgeGradeAssessment(
+  subjectId: subjectId,
+  questions: questions,
+  answers: answers,
+  threshold: threshold,
+);
+
+Future<List<AssessmentDto>> listAssessments({
+  required PlatformInt64 subjectId,
+}) => RustLib.instance.api.crateBridgeListAssessments(subjectId: subjectId);
 
 Future<List<TopicDto>> listTopics({required PlatformInt64 subjectId}) =>
     RustLib.instance.api.crateBridgeListTopics(subjectId: subjectId);
@@ -294,6 +321,222 @@ class AiStatusDto {
           modelPath == other.modelPath &&
           modelsDir == other.modelsDir &&
           message == other.message;
+}
+
+class AssessmentAnswerDto {
+  final PlatformInt64 questionId;
+  final String answer;
+
+  const AssessmentAnswerDto({required this.questionId, required this.answer});
+
+  @override
+  int get hashCode => questionId.hashCode ^ answer.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentAnswerDto &&
+          runtimeType == other.runtimeType &&
+          questionId == other.questionId &&
+          answer == other.answer;
+}
+
+class AssessmentDto {
+  final PlatformInt64 id;
+  final PlatformInt64 subjectId;
+  final String kind;
+  final double score;
+  final String date;
+  final PlatformInt64 correct;
+  final PlatformInt64 total;
+  final double threshold;
+
+  const AssessmentDto({
+    required this.id,
+    required this.subjectId,
+    required this.kind,
+    required this.score,
+    required this.date,
+    required this.correct,
+    required this.total,
+    required this.threshold,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      subjectId.hashCode ^
+      kind.hashCode ^
+      score.hashCode ^
+      date.hashCode ^
+      correct.hashCode ^
+      total.hashCode ^
+      threshold.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          subjectId == other.subjectId &&
+          kind == other.kind &&
+          score == other.score &&
+          date == other.date &&
+          correct == other.correct &&
+          total == other.total &&
+          threshold == other.threshold;
+}
+
+class AssessmentProposalDto {
+  final List<AssessmentQuestionDto> questions;
+  final String message;
+
+  const AssessmentProposalDto({required this.questions, required this.message});
+
+  @override
+  int get hashCode => questions.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentProposalDto &&
+          runtimeType == other.runtimeType &&
+          questions == other.questions &&
+          message == other.message;
+}
+
+class AssessmentQuestionDto {
+  final PlatformInt64 id;
+  final String kind;
+  final String prompt;
+  final List<String> options;
+  final String correctAnswer;
+  final String explanation;
+  final String source;
+  final PlatformInt64? topicId;
+  final String? topicName;
+
+  const AssessmentQuestionDto({
+    required this.id,
+    required this.kind,
+    required this.prompt,
+    required this.options,
+    required this.correctAnswer,
+    required this.explanation,
+    required this.source,
+    this.topicId,
+    this.topicName,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      kind.hashCode ^
+      prompt.hashCode ^
+      options.hashCode ^
+      correctAnswer.hashCode ^
+      explanation.hashCode ^
+      source.hashCode ^
+      topicId.hashCode ^
+      topicName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentQuestionDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          kind == other.kind &&
+          prompt == other.prompt &&
+          options == other.options &&
+          correctAnswer == other.correctAnswer &&
+          explanation == other.explanation &&
+          source == other.source &&
+          topicId == other.topicId &&
+          topicName == other.topicName;
+}
+
+class AssessmentQuestionResultDto {
+  final PlatformInt64 questionId;
+  final bool correct;
+  final double similarity;
+  final String expected;
+  final String feedback;
+  final String source;
+
+  const AssessmentQuestionResultDto({
+    required this.questionId,
+    required this.correct,
+    required this.similarity,
+    required this.expected,
+    required this.feedback,
+    required this.source,
+  });
+
+  @override
+  int get hashCode =>
+      questionId.hashCode ^
+      correct.hashCode ^
+      similarity.hashCode ^
+      expected.hashCode ^
+      feedback.hashCode ^
+      source.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentQuestionResultDto &&
+          runtimeType == other.runtimeType &&
+          questionId == other.questionId &&
+          correct == other.correct &&
+          similarity == other.similarity &&
+          expected == other.expected &&
+          feedback == other.feedback &&
+          source == other.source;
+}
+
+class AssessmentResultDto {
+  final PlatformInt64 assessmentId;
+  final double score;
+  final PlatformInt64 correct;
+  final PlatformInt64 total;
+  final bool passed;
+  final String message;
+  final List<AssessmentQuestionResultDto> details;
+
+  const AssessmentResultDto({
+    required this.assessmentId,
+    required this.score,
+    required this.correct,
+    required this.total,
+    required this.passed,
+    required this.message,
+    required this.details,
+  });
+
+  @override
+  int get hashCode =>
+      assessmentId.hashCode ^
+      score.hashCode ^
+      correct.hashCode ^
+      total.hashCode ^
+      passed.hashCode ^
+      message.hashCode ^
+      details.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssessmentResultDto &&
+          runtimeType == other.runtimeType &&
+          assessmentId == other.assessmentId &&
+          score == other.score &&
+          correct == other.correct &&
+          total == other.total &&
+          passed == other.passed &&
+          message == other.message &&
+          details == other.details;
 }
 
 class AssistantAnswerDto {

@@ -8,6 +8,7 @@ import '../widgets/dialogs.dart';
 import '../widgets/document_library.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/subject_agenda.dart';
+import '../widgets/subject_assessments.dart';
 import '../widgets/subject_progress.dart';
 
 class SubjectSpaceScreen extends ConsumerWidget {
@@ -119,13 +120,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
                   'Vistas mensual, semanal y diaria con filtros por asignatura '
                   'en la etapa E3.',
             ),
-            const _StagePanel(
-              icon: Icons.quiz_outlined,
-              title: 'Evaluaciones',
-              message:
-                  'Los cuestionarios generados desde tus documentos llegarán en '
-                  'la etapa E8, con corrección totalmente local.',
-            ),
+            SubjectAssessmentsPanel(subject: subject),
             SubjectProgressPanel(subject: subject),
           ],
         ),

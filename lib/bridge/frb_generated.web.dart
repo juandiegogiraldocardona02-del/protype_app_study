@@ -33,6 +33,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AiStatusDto dco_decode_ai_status_dto(dynamic raw);
 
   @protected
+  AssessmentAnswerDto dco_decode_assessment_answer_dto(dynamic raw);
+
+  @protected
+  AssessmentDto dco_decode_assessment_dto(dynamic raw);
+
+  @protected
+  AssessmentProposalDto dco_decode_assessment_proposal_dto(dynamic raw);
+
+  @protected
+  AssessmentQuestionDto dco_decode_assessment_question_dto(dynamic raw);
+
+  @protected
+  AssessmentQuestionResultDto dco_decode_assessment_question_result_dto(
+    dynamic raw,
+  );
+
+  @protected
+  AssessmentResultDto dco_decode_assessment_result_dto(dynamic raw);
+
+  @protected
   AssistantAnswerDto dco_decode_assistant_answer_dto(dynamic raw);
 
   @protected
@@ -88,6 +108,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<AssessmentAnswerDto> dco_decode_list_assessment_answer_dto(dynamic raw);
+
+  @protected
+  List<AssessmentDto> dco_decode_list_assessment_dto(dynamic raw);
+
+  @protected
+  List<AssessmentQuestionDto> dco_decode_list_assessment_question_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<AssessmentQuestionResultDto>
+  dco_decode_list_assessment_question_result_dto(dynamic raw);
 
   @protected
   List<AssistantSourceDto> dco_decode_list_assistant_source_dto(dynamic raw);
@@ -191,6 +226,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AiStatusDto sse_decode_ai_status_dto(SseDeserializer deserializer);
 
   @protected
+  AssessmentAnswerDto sse_decode_assessment_answer_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssessmentDto sse_decode_assessment_dto(SseDeserializer deserializer);
+
+  @protected
+  AssessmentProposalDto sse_decode_assessment_proposal_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssessmentQuestionDto sse_decode_assessment_question_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssessmentQuestionResultDto sse_decode_assessment_question_result_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  AssessmentResultDto sse_decode_assessment_result_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   AssistantAnswerDto sse_decode_assistant_answer_dto(
     SseDeserializer deserializer,
   );
@@ -258,6 +321,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<AssessmentAnswerDto> sse_decode_list_assessment_answer_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<AssessmentDto> sse_decode_list_assessment_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<AssessmentQuestionDto> sse_decode_list_assessment_question_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<AssessmentQuestionResultDto>
+  sse_decode_list_assessment_question_result_dto(SseDeserializer deserializer);
 
   @protected
   List<AssistantSourceDto> sse_decode_list_assistant_source_dto(
@@ -385,6 +467,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_ai_status_dto(AiStatusDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_assessment_answer_dto(
+    AssessmentAnswerDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_assessment_dto(AssessmentDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_assessment_proposal_dto(
+    AssessmentProposalDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_assessment_question_dto(
+    AssessmentQuestionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_assessment_question_result_dto(
+    AssessmentQuestionResultDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_assessment_result_dto(
+    AssessmentResultDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_assistant_answer_dto(
     AssistantAnswerDto self,
     SseSerializer serializer,
@@ -476,6 +591,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_assessment_answer_dto(
+    List<AssessmentAnswerDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_assessment_dto(
+    List<AssessmentDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_assessment_question_dto(
+    List<AssessmentQuestionDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_assessment_question_result_dto(
+    List<AssessmentQuestionResultDto> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_assistant_source_dto(

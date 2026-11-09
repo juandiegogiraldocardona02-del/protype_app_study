@@ -3,6 +3,12 @@ import '../bridge/bridge.dart';
 export '../bridge/bridge.dart'
     show
         AiStatusDto,
+        AssessmentAnswerDto,
+        AssessmentDto,
+        AssessmentProposalDto,
+        AssessmentQuestionDto,
+        AssessmentQuestionResultDto,
+        AssessmentResultDto,
         AssistantAnswerDto,
         AssistantSourceDto,
         AvailabilityDayDto,
@@ -54,6 +60,22 @@ abstract class StudyRepository {
   Future<void> deleteDocument(int id);
 
   Future<bool> ocrAvailable();
+
+  Future<bool> audioAvailable();
+
+  Future<AssessmentProposalDto> generateAssessment(
+    int subjectId,
+    int maxQuestions,
+  );
+
+  Future<AssessmentResultDto> gradeAssessment(
+    int subjectId,
+    List<AssessmentQuestionDto> questions,
+    List<AssessmentAnswerDto> answers,
+    double threshold,
+  );
+
+  Future<List<AssessmentDto>> listAssessments(int subjectId);
 
   Future<List<TopicDto>> listTopics(int subjectId);
 

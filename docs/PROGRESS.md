@@ -2,7 +2,8 @@
 
 > Documento de continuidad para retomar el trabajo aunque se reinicie la sesión
 > o se agoten los tokens. La fuente de requisitos es `AGENTS.md` / `docs/SRS.md`.
-> Última actualización: Etapas E1–E7 completadas, E8 como siguiente paso.
+> Última actualización: E1–E8 implementadas; E8 pendiente de arranque manual por
+> una limitación de Smart App Control.
 
 ## Repositorio
 
@@ -30,6 +31,11 @@
   de Flutter deben usar
   `STUDY_PLANNER_CARGOKIT_TEMP_DIR=C:\Users\juand\AppData\Local\Temp\opencode\cargokit-temp`
   (soporte añadido en `rust_builder/cargokit/cmake/cargokit.cmake`).
+  Si SAC también bloquea los *build-scripts* nuevos de Cargokit, se compila el
+  núcleo con `cargo build -p study_planner_core` (target normal, ya permitido)
+  y se pasa a Flutter
+  `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR=C:\Users\juand\AppData\Local\Temp\opencode\cargo-target\debug`;
+  Cargokit copia el `.dll` y su `.lib` en lugar de recompilar.
 - Modelo de prueba E6: `assets/models/qwen2.5-1.5b-instruct-q4_k_m.gguf`
   (1,1 GB, no versionado). También se puede definir
   `STUDY_PLANNER_MODEL_PATH` o colocar cualquier `.gguf` en la carpeta de
@@ -233,6 +239,44 @@ Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
       simulado).
 - [x] Build Windows y arranque real verificados.
 
+## Etapa E8 — IMPLEMENTADA (arranque manual pendiente) ⚠️
+
+Cubre FR-003 (audio), FR-010 (evaluaciones automáticas), FR-011 (dominio con
+evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
+
+- [x] Migración `0006_assessments.sql`: columnas `aciertos`, `total` y
+      `umbral` en `assessments`, y tabla `assessment_topics` con claves foráneas
+      e índices.
+- [x] Rust `assessments`: generación heurística desde fragmentos de documentos
+      (opción múltiple tipo cloze, verdadero/falso y respuesta corta), sin LLM y
+      sin red; el usuario revisa y descarta preguntas antes de guardar.
+- [x] Corrección local de opción múltiple y V/F; respuesta corta por similitud
+      (normalización sin acentos + palabras vacías; 55 % recall, 25 %
+      precisión y 20 % trigramas) con umbral configurable 0,3–0,9.
+- [x] Dominio por tema ampliado: `0,7 × base` (repasos + tiempo) +
+      `0,3 × promedio de evaluaciones`, actualizado tras cada corrección.
+- [x] XP de cuestionario aprobado una sola vez por evaluación
+      (`cuestionario:{id}`) y registro de racha al aprobar.
+- [x] Audio (`mp3`, `wav`, `m4a`, `aac`, `ogg`, `flac`): importación a la
+      biblioteca con transcripción opcional mediante `whisper-cli`
+      (`STUDY_PLANNER_WHISPER_BIN`/`STUDY_PLANNER_WHISPER_MODEL`), conversión
+      local a WAV 16 kHz mono con `ffmpeg` si es necesario y avisos claros si
+      falta el binario o el modelo. Sin whisper/ffmpeg el audio se importa igual.
+- [x] Copias E7 extendidas con evaluaciones y sus temas (`serde(default)` para
+      mantener compatibilidad con paquetes anteriores).
+- [x] API FFI: `audioAvailable`, `generateAssessment`, `gradeAssessment`,
+      `listAssessments` y DTOs asociados; bindings regenerados.
+- [x] Flutter: panel “Evaluaciones” en el espacio de la asignatura (generar,
+      revisar/descartar, responder, corregir, historial y umbral), filtro e
+      iconos de audio en la biblioteca y avisos de transcripción.
+- [x] Pruebas Rust: 55 verdes + 3 ignoradas; nuevas de generación/corrección,
+      similitud, audio y backup con evaluaciones.
+- [x] Pruebas Flutter: 25 verdes; nueva de generar y corregir un cuestionario.
+- [x] `flutter build windows --debug` correcto con el workaround de Cargokit
+      (`STUDY_PLANNER_CARGOKIT_PREBUILT_DIR`).
+- [ ] Arranque real del `.exe`: **no verificable en esta sesión** porque Smart
+      App Control bloqueó la nueva `study_planner_core.dll` (`os error 4551`).
+
 ## Decisiones de implementación tomadas
 - **OCR opcional (FR-018):** se invoca el binario externo `tesseract` si está
   disponible. Si no, la imagen se importa igualmente y se avisa de que no se
@@ -267,8 +311,8 @@ Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
   coincidencia, se propone una tarjeta marcada como «sin fuente» para que el
   usuario la edite o la descarte. Nada se guarda sin confirmación.
 - **Dominio:** media de los últimos 5 repasos (60 %) y minutos efectivos de
-  sesiones completadas (40 %, tope 120 min). Las evaluaciones se integrarán en
-  la etapa E8; entonces se ampliará la fórmula sin cambiar el esquema.
+  sesiones completadas (40 %, tope 120 min). Desde E8 se mezcla con el promedio
+  de evaluaciones (70 % base / 30 % evaluaciones).
 - **XP configurable:** cada asignatura guarda sus valores en
   `subjects.xp_config_json`; Rust los valida (0–10000) y los lee en el momento
   de otorgar el XP, por lo que un cambio no recalcula el histórico. El registro
@@ -315,9 +359,38 @@ Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
 - **Documentos en copias (E7):** se conservan los fragmentos extraídos y los
   archivos originales. Si un archivo ya no existe en el origen, la copia se
   genera igualmente con los fragmentos y el documento queda sin archivo local.
+- **Evaluaciones (E8):** la generación es heurística y local a partir de los
+  fragmentos ya extraídos; no requiere LLM. Se proponen preguntas de opción
+  múltiple (cloze), V/F y respuesta corta, y nada se guarda hasta que el usuario
+  las revisa y confirma.
+- **Corrección de respuesta corta (E8):** se normalizan acentos y se descartan
+  palabras vacías; la puntuación combina recall (55 %), precisión (25 %) y
+  trigramas (20 %). El umbral por defecto es 0,6 y se puede ajustar entre 0,3 y
+  0,9 antes de corregir.
+- **Dominio con evaluaciones (E8):** se conserva la base de repasos/tiempo y se
+  mezcla al 70/30 con el promedio de evaluaciones de los temas evaluados. Así el
+  dominio refleja tanto práctica como desempeño medido.
+- **Audio (E8):** whisper.cpp y ffmpeg son opcionales; se detectan por variable
+  de entorno o PATH. Si no están, el archivo se importa y la UI informa que no
+  se transcribió. La conversión a WAV 16 kHz mono se hace en una carpeta temporal
+  local y se elimina al terminar.
 - **Build en Windows con Smart App Control:** los binarios generados dentro de
   OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
-  y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit.
+  y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit. Si
+  SAC bloquea los build-scripts nuevos, `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR`
+  permite reutilizar el `.dll` y `.lib` ya compilados con `cargo build`.
+
+## Verificación de E8 (resultados)
+
+- `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
+- `cargo test`: 55 pruebas verdes, 3 ignoradas (OCR, PDF y modelo local).
+- `flutter analyze`: 0 incidencias.
+- `flutter test`: 25 pruebas verdes.
+- `flutter build windows --debug`: correcto usando
+  `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR` por el bloqueo de SAC a los
+  build-scripts de Cargokit.
+- Arranque real del `.exe`: bloqueado por Smart App Control al cargar la nueva
+  `study_planner_core.dll`; pendiente de repetir en un entorno sin SAC.
 
 ## Verificación de E7 (resultados)
 
@@ -389,4 +462,5 @@ Cubre FR-002 (`.studyplan`) y FR-019 (copias globales con integridad).
 
 ## Pendiente por etapas (según §12)
 
-- E8: audio whisper.cpp y evaluaciones automáticas (FR-010, RES-005).
+- E1–E8 implementadas. Pendiente de verificación manual del arranque de E8 en un
+  entorno sin Smart App Control y de la prueba con red deshabilitada.
