@@ -184,8 +184,8 @@ class _SubjectPdfsPanelState extends ConsumerState<SubjectPdfsPanel> {
                           (chunk) => ListTile(
                             title: Text(
                               chunk,
-                              maxLines: 5,
-                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
                             ),
                           ),
                         ),
