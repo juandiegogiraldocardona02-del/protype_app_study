@@ -97,37 +97,46 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
         return ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(
-              'Asistente IA local',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.smart_toy_outlined,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Asistente IA local',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Responde sin conexión y distingue entre documentos '
+                        'de la asignatura y conocimiento general.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Responde sin conexión y distingue entre documentos de la '
-              'asignatura y conocimiento general del modelo.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            status.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (error, _) => _StatusCard(
-                available: false,
-                title: 'No se pudo comprobar el modelo',
-                message: error.toString(),
-              ),
-              data: (value) => _StatusCard(
-                available: value.available,
-                title: value.available
-                    ? 'Modelo local listo'
-                    : 'Modelo local no instalado',
-                message: value.message,
-                details: value.available
-                    ? value.modelPath
-                    : 'Carpeta de modelos: ${value.modelsDir}',
-              ),
-            ),
+            const SizedBox(height: 20),
+            _ModelStatusCard(status: status),
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -252,38 +261,129 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
   }
 }
 
+class _ModelStatusCard extends StatelessWidget {
+  const _ModelStatusCard({required this.status});
+
+  final AsyncValue<AiStatusDto> status;
+
+  @override
+  Widget build(BuildContext context) {
+    return status.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _StatusCard(
+        available: false,
+        title: 'No se pudo comprobar el modelo',
+        message: error.toString(),
+        icon: Icons.error_outline,
+        color: Theme.of(context).colorScheme.errorContainer,
+        textColor: Theme.of(context).colorScheme.onErrorContainer,
+      ),
+      data: (value) {
+        if (value.available) {
+          return _StatusCard(
+            available: true,
+            title: 'Modelo local listo',
+            message: value.message,
+            details: 'Modelo: ${value.modelPath ?? 'sin ruta'}',
+            icon: Icons.check_circle_outline,
+            color: Theme.of(context).colorScheme.primaryContainer,
+            textColor: Theme.of(context).colorScheme.primary,
+          );
+        }
+        return _StatusCard(
+          available: false,
+          title: 'Modelo local no instalado',
+          message:
+              'Descarga un modelo GGUF (Qwen2.5-1.5B-Instruct Q4_K_M o '
+              'similar) y colócalo en la carpeta de modelos.',
+          details: 'Carpeta: ${value.modelsDir}',
+          icon: Icons.cloud_off_outlined,
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          textColor: Theme.of(context).colorScheme.tertiary,
+          hint: 'Sin el modelo, el asistente no genera respuestas.',
+        );
+      },
+    );
+  }
+}
+
 class _StatusCard extends StatelessWidget {
   const _StatusCard({
     required this.available,
     required this.title,
     required this.message,
     this.details,
+    this.hint,
+    required this.icon,
+    required this.color,
+    required this.textColor,
   });
 
   final bool available;
   final String title;
   final String message;
   final String? details;
+  final String? hint;
+  final IconData icon;
+  final Color color;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Card(
-      child: ListTile(
-        leading: Icon(
-          available ? Icons.check_circle_outline : Icons.info_outline,
-          color: available
-              ? theme.colorScheme.primary
-              : theme.colorScheme.tertiary,
-        ),
-        title: Text(title),
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message),
+            Row(
+              children: [
+                Icon(icon, color: textColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textColor.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             if (details != null) ...[
-              const SizedBox(height: 4),
-              SelectableText(details!, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              SelectableText(
+                details!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textColor.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
+            if (hint != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                hint!,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: textColor.withValues(alpha: 0.7),
+                ),
+              ),
             ],
           ],
         ),
@@ -321,7 +421,9 @@ class _AnswerCard extends StatelessWidget {
                     fromDocuments
                         ? 'Fuente: documentos de la asignatura'
                         : 'Conocimiento general del modelo',
-                    style: theme.textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -330,7 +432,12 @@ class _AnswerCard extends StatelessWidget {
             SelectableText(answer.answer, style: theme.textTheme.bodyLarge),
             if (answer.sources.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Fuentes citadas', style: theme.textTheme.titleSmall),
+              Text(
+                'Fuentes citadas',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 8),
               for (final source in answer.sources)
                 Padding(
