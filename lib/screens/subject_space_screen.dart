@@ -10,6 +10,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/subject_agenda.dart';
 import '../widgets/subject_assessments.dart';
 import '../widgets/subject_progress.dart';
+import '../widgets/subject_class_start.dart';
 import '../widgets/subject_music.dart';
 
 class SubjectSpaceScreen extends ConsumerWidget {
@@ -47,7 +48,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(subject.color);
     return DefaultTabController(
-      length: 7,
+      length: 8,
       child: Scaffold(
         appBar: AppBar(
           title: Row(
@@ -100,6 +101,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
               Tab(icon: Icon(Icons.quiz_outlined), text: 'Evaluaciones'),
               Tab(icon: Icon(Icons.insights_outlined), text: 'Progreso'),
               Tab(icon: Icon(Icons.music_note_outlined), text: 'Música'),
+              Tab(icon: Icon(Icons.school_outlined), text: 'Inicio de clase'),
             ],
           ),
         ),
@@ -124,6 +126,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
             SubjectAssessmentsPanel(subject: subject),
             SubjectProgressPanel(subject: subject),
             SubjectMusicPanel(subject: subject),
+            SubjectClassStartPanel(subject: subject),
           ],
         ),
       ),

@@ -242,6 +242,24 @@ void main() {
     expect(find.text('Reproductor offline'), findsOneWidget);
   });
 
+  testWidgets('muestra la pestaña de inicio de clase del área de estudio', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inicio de clase'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Abre el archivo para la clase'), findsOneWidget);
+    expect(find.text('Abrir archivo'), findsOneWidget);
+  });
+
   testWidgets('genera y guarda un plan desde la agenda', (tester) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');

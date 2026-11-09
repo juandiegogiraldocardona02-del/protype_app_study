@@ -381,6 +381,9 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - **Pestaña de música (solicitud del usuario):** se añadió la pestaña “Música” al
   área de estudio. Incluye acceso a Spotify y YouTube para estudiar, y un
   reproductor offline local para archivos de audio.
+- **Pestaña de inicio de clase (solicitud del usuario):** se añadió la pestaña
+  “Inicio de clase” para seleccionar y abrir el archivo (documento o audio)
+  que se usará al comenzar la sesión.
 - **Build en Windows con Smart App Control:** los binarios generados dentro de
   OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
   y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit. Si
