@@ -273,7 +273,8 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
       iconos de audio en la biblioteca y avisos de transcripción.
 - [x] Pruebas Rust: 55 verdes + 3 ignoradas; nuevas de generación/corrección,
       similitud, audio y backup con evaluaciones.
-- [x] Pruebas Flutter: 25 verdes; nueva de generar y corregir un cuestionario.
+- [x] Pruebas Flutter: 26 verdes; nueva de generar y corregir un cuestionario y
+      nueva de la pestaña de música.
 - [x] `flutter build windows --debug` correcto con el workaround de Cargokit
       (`STUDY_PLANNER_CARGOKIT_PREBUILT_DIR`).
 - [x] Arranque real del `.exe` verificado durante 10 s tras desactivar Smart App
@@ -377,6 +378,9 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
   de entorno o PATH. Si no están, el archivo se importa y la UI informa que no
   se transcribió. La conversión a WAV 16 kHz mono se hace en una carpeta temporal
   local y se elimina al terminar.
+- **Pestaña de música (solicitud del usuario):** se añadió la pestaña “Música” al
+  área de estudio. Incluye acceso a Spotify y YouTube para estudiar, y un
+  reproductor offline local para archivos de audio.
 - **Build en Windows con Smart App Control:** los binarios generados dentro de
   OneDrive son bloqueados al ejecutarse. Se usa una junction para `rust/target`
   y la variable `STUDY_PLANNER_CARGOKIT_TEMP_DIR` para el target de Cargokit. Si
@@ -388,7 +392,7 @@ evaluaciones), FR-012/FR-013 (XP y racha al aprobar) y RES-005 (whisper.cpp).
 - `cargo fmt` + `cargo clippy --all-targets -- -D warnings`: limpio.
 - `cargo test`: 55 pruebas verdes, 3 ignoradas (OCR, PDF y modelo local).
 - `flutter analyze`: 0 incidencias.
-- `flutter test`: 25 pruebas verdes.
+- `flutter test`: 26 pruebas verdes.
 - `flutter build windows --debug`: correcto usando
   `STUDY_PLANNER_CARGOKIT_PREBUILT_DIR` por el bloqueo de SAC a los
   build-scripts de Cargokit.

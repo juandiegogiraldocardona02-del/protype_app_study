@@ -10,6 +10,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/subject_agenda.dart';
 import '../widgets/subject_assessments.dart';
 import '../widgets/subject_progress.dart';
+import '../widgets/subject_music.dart';
 
 class SubjectSpaceScreen extends ConsumerWidget {
   const SubjectSpaceScreen({super.key, required this.subject});
@@ -37,9 +38,8 @@ class SubjectSpaceScreen extends ConsumerWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo exportar: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('No se pudo exportar: $error')));
     }
   }
 
@@ -47,7 +47,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(subject.color);
     return DefaultTabController(
-      length: 6,
+      length: 7,
       child: Scaffold(
         appBar: AppBar(
           title: Row(
@@ -99,6 +99,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
               ),
               Tab(icon: Icon(Icons.quiz_outlined), text: 'Evaluaciones'),
               Tab(icon: Icon(Icons.insights_outlined), text: 'Progreso'),
+              Tab(icon: Icon(Icons.music_note_outlined), text: 'Música'),
             ],
           ),
         ),
@@ -122,6 +123,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
             ),
             SubjectAssessmentsPanel(subject: subject),
             SubjectProgressPanel(subject: subject),
+            SubjectMusicPanel(subject: subject),
           ],
         ),
       ),

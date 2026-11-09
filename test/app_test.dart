@@ -223,6 +223,25 @@ void main() {
     expect(await repository.listAssessments(1), hasLength(1));
   });
 
+  testWidgets('muestra la pestaña de música del área de estudio', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#059669');
+
+    await _pumpApp(tester, repository);
+    await tester.tap(find.text('Mis materias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Biología'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Música'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escuchar con Spotify'), findsOneWidget);
+    expect(find.text('YouTube para estudiar'), findsOneWidget);
+    expect(find.text('Reproductor offline'), findsOneWidget);
+  });
+
   testWidgets('genera y guarda un plan desde la agenda', (tester) async {
     final repository = FakeStudyRepository()..addProfile('Ana');
     repository.addSubject(1, 'Biología', '#059669');
