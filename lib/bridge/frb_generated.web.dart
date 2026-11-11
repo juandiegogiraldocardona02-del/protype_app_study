@@ -148,6 +148,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<MasteryOverviewDto> dco_decode_list_mastery_overview_dto(dynamic raw);
 
   @protected
+  List<NoteDto> dco_decode_list_note_dto(dynamic raw);
+
+  @protected
   List<PlannedSessionDto> dco_decode_list_planned_session_dto(dynamic raw);
 
   @protected
@@ -167,6 +170,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MasteryOverviewDto dco_decode_mastery_overview_dto(dynamic raw);
+
+  @protected
+  NoteDto dco_decode_note_dto(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -373,6 +379,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<NoteDto> sse_decode_list_note_dto(SseDeserializer deserializer);
+
+  @protected
   List<PlannedSessionDto> sse_decode_list_planned_session_dto(
     SseDeserializer deserializer,
   );
@@ -396,6 +405,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MasteryOverviewDto sse_decode_mastery_overview_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  NoteDto sse_decode_note_dto(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -656,6 +668,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_note_dto(List<NoteDto> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_planned_session_dto(
     List<PlannedSessionDto> self,
     SseSerializer serializer,
@@ -693,6 +708,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     MasteryOverviewDto self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_note_dto(NoteDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);

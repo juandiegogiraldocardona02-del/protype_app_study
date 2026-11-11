@@ -14,6 +14,15 @@ pub struct ProfileDto {
 }
 
 #[derive(Debug, Clone)]
+pub struct NoteDto {
+    pub id: i64,
+    pub profile_id: i64,
+    pub title: String,
+    pub content: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct SubjectDto {
     pub id: i64,
     pub profile_id: i64,
@@ -323,6 +332,18 @@ impl From<domain::Profile> for ProfileDto {
             id: value.id,
             name: value.name,
             config_json: value.config_json,
+        }
+    }
+}
+
+impl From<domain::Note> for NoteDto {
+    fn from(value: domain::Note) -> Self {
+        Self {
+            id: value.id,
+            profile_id: value.profile_id,
+            title: value.title,
+            content: value.content,
+            updated_at: value.updated_at,
         }
     }
 }
@@ -783,6 +804,26 @@ pub fn delete_profile(id: i64) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn list_notes(profile_id: i64) -> anyhow::Result<Vec<NoteDto>> {
+    let notes = db::with_db(|database| database.list_notes(profile_id))?;
+    Ok(notes.into_iter().map(NoteDto::from).collect())
+}
+
+pub fn create_note(profile_id: i64, title: String, content: String) -> anyhow::Result<NoteDto> {
+    let note = db::with_db(|database| database.create_note(profile_id, &title, &content))?;
+    Ok(note.into())
+}
+
+pub fn update_note(id: i64, title: String, content: String) -> anyhow::Result<NoteDto> {
+    let note = db::with_db(|database| database.update_note(id, &title, &content))?;
+    Ok(note.into())
+}
+
+pub fn delete_note(id: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.delete_note(id))?;
+    Ok(())
+}
+
 pub fn list_subjects(profile_id: i64) -> anyhow::Result<Vec<SubjectDto>> {
     let subjects = db::with_db(|database| database.list_subjects(profile_id))?;
     Ok(subjects.into_iter().map(SubjectDto::from).collect())
@@ -946,6 +987,11 @@ pub fn list_sessions(
 
 pub fn set_session_state(id: i64, state: String) -> anyhow::Result<()> {
     db::with_db(|database| database.set_session_state(id, &state))?;
+    Ok(())
+}
+
+pub fn update_session_duration(id: i64, duration_min: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.update_session_duration(id, duration_min))?;
     Ok(())
 }
 

@@ -109,6 +109,16 @@ struct ProfileRecord {
     created_at: String,
     xp_log: Vec<XpLogRecord>,
     streak: Option<StreakRecord>,
+    #[serde(default)]
+    notes: Vec<NoteRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct NoteRecord {
+    old_id: i64,
+    title: String,
+    content: String,
+    updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -939,6 +949,13 @@ pub fn restore_backup(
                     ],
                 )?;
             }
+            for note in &profile.notes {
+                tx.execute(
+                    "INSERT INTO notes (profile_id, titulo, contenido, updated_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    params![new_profile_id, note.title, note.content, note.updated_at],
+                )?;
+            }
         }
         insert_profile_activity(
             &tx,
@@ -1321,7 +1338,7 @@ fn collect_profile(
     config_json: &str,
     created_at: &str,
     activity_filter: Option<&HashSet<String>>,
-    include_streak: bool,
+    include_profile_data: bool,
 ) -> CoreResult<ProfileRecord> {
     let mut xp_log = Vec::new();
     let mut stmt = conn.prepare(
@@ -1345,7 +1362,7 @@ fn collect_profile(
             xp_log.push(entry);
         }
     }
-    let streak = if include_streak {
+    let streak = if include_profile_data {
         conn.query_row(
             "SELECT current_days, best_days, last_activity_date,
                     freeze_enabled, freeze_used_on
@@ -1365,6 +1382,27 @@ fn collect_profile(
     } else {
         None
     };
+    let notes = if include_profile_data {
+        let mut notes = Vec::new();
+        let mut stmt = conn.prepare(
+            "SELECT id, titulo, contenido, updated_at FROM notes
+             WHERE profile_id = ?1 ORDER BY id ASC",
+        )?;
+        let rows = stmt.query_map(params![profile_id], |row| {
+            Ok(NoteRecord {
+                old_id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                updated_at: row.get(3)?,
+            })
+        })?;
+        for row in rows {
+            notes.push(row?);
+        }
+        notes
+    } else {
+        Vec::new()
+    };
     Ok(ProfileRecord {
         old_id: profile_id,
         name: name.to_string(),
@@ -1372,6 +1410,7 @@ fn collect_profile(
         created_at: created_at.to_string(),
         xp_log,
         streak,
+        notes,
     })
 }
 
@@ -1880,6 +1919,9 @@ mod tests {
     #[test]
     fn backup_round_trip_restores_profiles_and_subjects() {
         let (mut database, root) = setup("backup");
+        database
+            .create_note(1, "Saludo", "saluda\n* acercarse")
+            .expect("apunte");
         let export_dir = root.join("export");
         fs::create_dir_all(&export_dir).expect("export");
         let exported =
@@ -1899,6 +1941,10 @@ mod tests {
         let subjects = clean.list_subjects(profiles[0].id).expect("asignaturas");
         assert_eq!(subjects.len(), 1);
         assert_eq!(subjects[0].name, "Matemáticas");
+        let notes = clean.list_notes(profiles[0].id).expect("apuntes");
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].title, "Saludo");
+        assert!(notes[0].content.contains("acercarse"));
     }
 
     #[test]

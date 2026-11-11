@@ -17,6 +17,21 @@ class RustStudyRepository implements StudyRepository {
   Future<void> deleteProfile(int id) => rust.deleteProfile(id: id);
 
   @override
+  Future<List<NoteDto>> listNotes(int profileId) =>
+      rust.listNotes(profileId: profileId);
+
+  @override
+  Future<NoteDto> createNote(int profileId, String title, String content) =>
+      rust.createNote(profileId: profileId, title: title, content: content);
+
+  @override
+  Future<NoteDto> updateNote(int id, String title, String content) =>
+      rust.updateNote(id: id, title: title, content: content);
+
+  @override
+  Future<void> deleteNote(int id) => rust.deleteNote(id: id);
+
+  @override
   Future<List<SubjectDto>> listSubjects(int profileId) =>
       rust.listSubjects(profileId: profileId);
 
@@ -138,6 +153,10 @@ class RustStudyRepository implements StudyRepository {
   @override
   Future<void> setSessionState(int id, String state) =>
       rust.setSessionState(id: id, state: state);
+
+  @override
+  Future<void> updateSessionDuration(int id, int durationMin) =>
+      rust.updateSessionDuration(id: id, durationMin: durationMin);
 
   @override
   Future<ReplanResultDto> replanSubject(int subjectId) =>

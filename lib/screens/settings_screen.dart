@@ -1,14 +1,69 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
+import '../state/repository.dart' show ProfileDto;
 import '../widgets/backup_panel.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/profile_avatar.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, this.embedded = false});
 
   final bool embedded;
+
+  Future<void> _pickAvatar(
+    BuildContext context,
+    WidgetRef ref,
+    ProfileDto profile,
+  ) async {
+    final result = await FilePicker.pickFiles(
+      dialogTitle: 'Seleccionar foto de perfil',
+      type: FileType.custom,
+      allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'gif'],
+    );
+    if (result.isEmpty || !context.mounted) {
+      return;
+    }
+    final path = result.first.path;
+    if (path == null) {
+      _snack(context, 'No se pudo obtener la ruta de la imagen.');
+      return;
+    }
+    try {
+      await ref.read(profileActionsProvider).setAvatar(profile.id, path);
+      if (context.mounted) {
+        _snack(context, 'Foto de perfil actualizada.');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        _snack(context, 'No se pudo guardar la foto: $error');
+      }
+    }
+  }
+
+  Future<void> _removeAvatar(
+    BuildContext context,
+    WidgetRef ref,
+    ProfileDto profile,
+  ) async {
+    try {
+      await ref.read(profileActionsProvider).removeAvatar(profile.id);
+      if (context.mounted) {
+        _snack(context, 'Foto de perfil eliminada.');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        _snack(context, 'No se pudo eliminar la foto: $error');
+      }
+    }
+  }
+
+  void _snack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -23,6 +78,53 @@ class SettingsScreen extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.palette_outlined),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('Tema de la aplicación')),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SegmentedButton<ThemeMode>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto_outlined),
+                            label: Text('Sistema'),
+                          ),
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode_outlined),
+                            label: Text('Claro'),
+                          ),
+                          ButtonSegment<ThemeMode>(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode_outlined),
+                            label: Text('Oscuro'),
+                          ),
+                        ],
+                        selected: {
+                          ref.watch(themeModeProvider).value ??
+                              ThemeMode.system,
+                        },
+                        onSelectionChanged: (selection) {
+                          ref
+                              .read(themeModeProvider.notifier)
+                              .select(selection.first);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Text('Perfiles', style: Theme.of(context).textTheme.titleLarge),
@@ -62,12 +164,10 @@ class SettingsScreen extends ConsumerWidget {
             for (final profile in profiles)
               Card(
                 child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      profile.name.isEmpty
-                          ? '?'
-                          : profile.name[0].toUpperCase(),
-                    ),
+                  leading: ProfileAvatar(
+                    profileId: profile.id,
+                    name: profile.name,
+                    radius: 20,
                   ),
                   title: Text(profile.name),
                   subtitle: Text(
@@ -80,6 +180,10 @@ class SettingsScreen extends ConsumerWidget {
                         ref
                             .read(selectedProfileIdProvider.notifier)
                             .select(profile.id);
+                      } else if (value == 'photo') {
+                        await _pickAvatar(context, ref, profile);
+                      } else if (value == 'removePhoto') {
+                        await _removeAvatar(context, ref, profile);
                       } else if (value == 'rename') {
                         final name = await showNameDialog(
                           context,
@@ -128,6 +232,22 @@ class SettingsScreen extends ConsumerWidget {
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
+                      const PopupMenuItem(
+                        value: 'photo',
+                        child: ListTile(
+                          leading: Icon(Icons.photo_camera_outlined),
+                          title: Text('Cambiar foto'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'removePhoto',
+                        child: ListTile(
+                          leading: Icon(Icons.hide_image_outlined),
+                          title: Text('Quitar foto'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'rename',
                         child: ListTile(

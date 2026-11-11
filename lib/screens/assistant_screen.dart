@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/app_sections.dart';
 import '../state/providers.dart';
 import '../state/repository.dart';
 import '../widgets/empty_state.dart';
@@ -81,8 +82,9 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                 'asignatura. Crea una asignatura e importa material para '
                 'empezar.',
             action: FilledButton.icon(
-              onPressed: () =>
-                  ref.read(navigationIndexProvider.notifier).select(1),
+              onPressed: () => ref
+                  .read(navigationIndexProvider.notifier)
+                  .select(AppSections.subjects),
               icon: const Icon(Icons.add),
               label: const Text('Ir a Mis materias'),
             ),

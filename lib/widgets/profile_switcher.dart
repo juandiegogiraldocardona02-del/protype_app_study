@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/settings_screen.dart';
 import '../state/providers.dart';
 import 'dialogs.dart';
+import 'profile_avatar.dart';
 
 class ProfileSwitcher extends ConsumerWidget {
   const ProfileSwitcher({super.key});
@@ -68,13 +69,7 @@ class ProfileSwitcher extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 14,
-              child: Text(
-                active.name.isEmpty ? '?' : active.name[0].toUpperCase(),
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
+            ProfileAvatar(profileId: active.id, name: active.name, radius: 14),
             const SizedBox(width: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 140),

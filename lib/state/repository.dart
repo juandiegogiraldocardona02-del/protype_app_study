@@ -23,6 +23,7 @@ export '../bridge/bridge.dart'
         GamificationSummaryDto,
         ImportOutcomeDto,
         MasteryOverviewDto,
+        NoteDto,
         PlanProposalDto,
         PlanSettingsDto,
         PlannedSessionDto,
@@ -44,6 +45,14 @@ abstract class StudyRepository {
   Future<ProfileDto> renameProfile(int id, String name);
 
   Future<void> deleteProfile(int id);
+
+  Future<List<NoteDto>> listNotes(int profileId);
+
+  Future<NoteDto> createNote(int profileId, String title, String content);
+
+  Future<NoteDto> updateNote(int id, String title, String content);
+
+  Future<void> deleteNote(int id);
 
   Future<List<SubjectDto>> listSubjects(int profileId);
 
@@ -109,6 +118,8 @@ abstract class StudyRepository {
   );
 
   Future<void> setSessionState(int id, String state);
+
+  Future<void> updateSessionDuration(int id, int durationMin);
 
   Future<ReplanResultDto> replanSubject(int subjectId);
 

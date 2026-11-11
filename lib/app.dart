@@ -6,17 +6,17 @@ import 'state/providers.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_shell.dart';
 
-class StudyPlannerApp extends StatelessWidget {
+class StudyPlannerApp extends ConsumerWidget {
   const StudyPlannerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'Planificador de Estudios',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeModeProvider).value ?? ThemeMode.system,
       home: const _AppGate(),
     );
   }

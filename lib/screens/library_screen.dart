@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/app_sections.dart';
 import '../state/providers.dart';
 import '../widgets/document_library.dart';
 import '../widgets/empty_state.dart';
@@ -43,8 +44,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 'La biblioteca se organiza por asignatura. Crea una para '
                 'empezar a importar documentos.',
             action: FilledButton.icon(
-              onPressed: () =>
-                  ref.read(navigationIndexProvider.notifier).select(1),
+              onPressed: () => ref
+                  .read(navigationIndexProvider.notifier)
+                  .select(AppSections.subjects),
               icon: const Icon(Icons.add),
               label: const Text('Ir a Mis materias'),
             ),

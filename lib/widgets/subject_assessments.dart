@@ -16,10 +16,7 @@ class SubjectAssessmentsPanel extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Evaluaciones',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Evaluaciones', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Card(
           child: Padding(
@@ -74,7 +71,8 @@ class SubjectAssessmentsPanel extends ConsumerWidget {
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: assessment.score >= assessment.threshold
+                        backgroundColor:
+                            assessment.score >= assessment.threshold
                             ? Theme.of(context).colorScheme.primaryContainer
                             : Theme.of(context).colorScheme.errorContainer,
                         child: Icon(
@@ -120,21 +118,17 @@ class SubjectAssessmentsPanel extends ConsumerWidget {
       final result = await showDialog<AssessmentResultDto>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => _QuizDialog(
-          subjectId: subject.id,
-          proposal: proposal,
-        ),
+        builder: (context) =>
+            _QuizDialog(subjectId: subject.id, proposal: proposal),
       );
       if (result != null && context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(result.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(result.message)));
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_describe(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(_describe(error))));
       }
     }
   }
@@ -262,8 +256,7 @@ class _QuizDialogState extends ConsumerState<_QuizDialog> {
                       labelText: 'Tu respuesta',
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: (value) =>
-                        _answers[question.id] = value,
+                    onChanged: (value) => _answers[question.id] = value,
                   )
                 else
                   DropdownButton<String>(
@@ -272,10 +265,7 @@ class _QuizDialogState extends ConsumerState<_QuizDialog> {
                     isExpanded: true,
                     items: [
                       for (final option in question.options)
-                        DropdownMenuItem(
-                          value: option,
-                          child: Text(option),
-                        ),
+                        DropdownMenuItem(value: option, child: Text(option)),
                     ],
                     onChanged: _busy
                         ? null
@@ -304,7 +294,9 @@ class _QuizDialogState extends ConsumerState<_QuizDialog> {
         Card(
           child: ListTile(
             leading: Icon(
-              result.passed ? Icons.emoji_events_outlined : Icons.school_outlined,
+              result.passed
+                  ? Icons.emoji_events_outlined
+                  : Icons.school_outlined,
             ),
             title: Text(result.message),
             subtitle: Text(
@@ -319,15 +311,15 @@ class _QuizDialogState extends ConsumerState<_QuizDialog> {
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: Icon(
-                detail.correct ? Icons.check_circle_outline : Icons.cancel_outlined,
+                detail.correct
+                    ? Icons.check_circle_outline
+                    : Icons.cancel_outlined,
                 color: detail.correct
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).colorScheme.error,
               ),
               title: Text(prompts[detail.questionId] ?? 'Pregunta'),
-              subtitle: Text(
-                '${detail.feedback}\nFuente: ${detail.source}',
-              ),
+              subtitle: Text('${detail.feedback}\nFuente: ${detail.source}'),
               isThreeLine: true,
             ),
           ),

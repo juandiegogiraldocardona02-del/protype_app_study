@@ -30,7 +30,8 @@ base class _TestPlatformFile extends PlatformFile {
   Stream<Uint8List> readAsByteStream() => const Stream.empty();
 }
 
-class FakeFilePicker extends FilePickerPlatform with MockPlatformInterfaceMixin {
+class FakeFilePicker extends FilePickerPlatform
+    with MockPlatformInterfaceMixin {
   String? directoryPath;
   List<PlatformFile> files = <PlatformFile>[];
 

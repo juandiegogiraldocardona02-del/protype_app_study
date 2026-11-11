@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -25,6 +25,32 @@ Future<ProfileDto> renameProfile({
 
 Future<void> deleteProfile({required PlatformInt64 id}) =>
     RustLib.instance.api.crateBridgeDeleteProfile(id: id);
+
+Future<List<NoteDto>> listNotes({required PlatformInt64 profileId}) =>
+    RustLib.instance.api.crateBridgeListNotes(profileId: profileId);
+
+Future<NoteDto> createNote({
+  required PlatformInt64 profileId,
+  required String title,
+  required String content,
+}) => RustLib.instance.api.crateBridgeCreateNote(
+  profileId: profileId,
+  title: title,
+  content: content,
+);
+
+Future<NoteDto> updateNote({
+  required PlatformInt64 id,
+  required String title,
+  required String content,
+}) => RustLib.instance.api.crateBridgeUpdateNote(
+  id: id,
+  title: title,
+  content: content,
+);
+
+Future<void> deleteNote({required PlatformInt64 id}) =>
+    RustLib.instance.api.crateBridgeDeleteNote(id: id);
 
 Future<List<SubjectDto>> listSubjects({required PlatformInt64 profileId}) =>
     RustLib.instance.api.crateBridgeListSubjects(profileId: profileId);
@@ -168,6 +194,14 @@ Future<void> setSessionState({
   required PlatformInt64 id,
   required String state,
 }) => RustLib.instance.api.crateBridgeSetSessionState(id: id, state: state);
+
+Future<void> updateSessionDuration({
+  required PlatformInt64 id,
+  required PlatformInt64 durationMin,
+}) => RustLib.instance.api.crateBridgeUpdateSessionDuration(
+  id: id,
+  durationMin: durationMin,
+);
 
 Future<ReplanResultDto> replanSubject({required PlatformInt64 subjectId}) =>
     RustLib.instance.api.crateBridgeReplanSubject(subjectId: subjectId);
@@ -1048,6 +1082,41 @@ class MasteryOverviewDto {
           mastery == other.mastery &&
           dueCards == other.dueCards &&
           reviews == other.reviews;
+}
+
+class NoteDto {
+  final PlatformInt64 id;
+  final PlatformInt64 profileId;
+  final String title;
+  final String content;
+  final String updatedAt;
+
+  const NoteDto({
+    required this.id,
+    required this.profileId,
+    required this.title,
+    required this.content,
+    required this.updatedAt,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      profileId.hashCode ^
+      title.hashCode ^
+      content.hashCode ^
+      updatedAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NoteDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          profileId == other.profileId &&
+          title == other.title &&
+          content == other.content &&
+          updatedAt == other.updatedAt;
 }
 
 class PlanProposalDto {

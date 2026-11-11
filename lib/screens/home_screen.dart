@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/app_sections.dart';
 import '../state/providers.dart';
 import '../state/repository.dart';
 import '../theme/app_theme.dart';
@@ -44,15 +45,15 @@ class HomeScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     subjects.isEmpty ? 'Sin asignaturas' : 'Tus asignaturas',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 if (subjects.isNotEmpty)
                   TextButton(
-                    onPressed: () =>
-                        ref.read(navigationIndexProvider.notifier).select(1),
+                    onPressed: () => ref
+                        .read(navigationIndexProvider.notifier)
+                        .select(AppSections.subjects),
                     child: const Text('Ver todas'),
                   ),
               ],
@@ -66,8 +67,9 @@ class HomeScreen extends ConsumerWidget {
                     'Cada asignatura tendrá su propio espacio con agenda, '
                     'archivos, tareas, calendario, evaluaciones y progreso.',
                 action: FilledButton.icon(
-                  onPressed: () =>
-                      ref.read(navigationIndexProvider.notifier).select(1),
+                  onPressed: () => ref
+                      .read(navigationIndexProvider.notifier)
+                      .select(AppSections.subjects),
                   icon: const Icon(Icons.add),
                   label: const Text('Ir a Mis materias'),
                 ),
@@ -109,10 +111,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.tertiary,
-          ],
+          colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -127,8 +126,11 @@ class _Header extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.school_outlined,
-                color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.school_outlined,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -194,9 +196,11 @@ class _SummaryRow extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(item.icon,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20),
+                      child: Icon(
+                        item.icon,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -205,17 +209,13 @@ class _SummaryRow extends StatelessWidget {
                         children: [
                           Text(
                             item.label,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
+                            style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item.value,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -383,7 +383,8 @@ class _SubjectCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          color: Theme.of(context).colorScheme.outlineVariant
+              .withValues(alpha: 0.6),
           width: 1,
         ),
       ),
@@ -421,9 +422,8 @@ class _SubjectCard extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 subject.name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(

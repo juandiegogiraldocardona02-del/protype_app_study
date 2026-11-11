@@ -65,9 +65,7 @@ class _BackupPanelState extends ConsumerState<BackupPanel> {
       return;
     }
     await _run(() async {
-      final preview = await ref
-          .read(backupActionsProvider)
-          .inspectBackup(path);
+      final preview = await ref.read(backupActionsProvider).inspectBackup(path);
       if (!mounted) {
         return;
       }

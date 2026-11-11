@@ -8,6 +8,15 @@ pub struct Profile {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Note {
+    pub id: i64,
+    pub profile_id: i64,
+    pub title: String,
+    pub content: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Subject {
     pub id: i64,
     pub profile_id: i64,

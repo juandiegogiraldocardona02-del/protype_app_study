@@ -42,6 +42,53 @@ void main() {
     expect(find.text('Inicio'), findsWidgets);
   });
 
+  testWidgets('el plan de estudio enlaza un paso con la asignatura', (
+    tester,
+  ) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    repository.addSubject(1, 'Biología', '#4F46E5');
+    await _pumpApp(tester, repository);
+
+    await tester.tap(find.text('Plan de estudio').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Plan de estudio · Superlearning'), findsOneWidget);
+    expect(find.text('Fase 1 · Preparación'), findsOneWidget);
+
+    final action = find.text('Abrir Archivos').first;
+    await tester.ensureVisible(action);
+    await tester.pumpAndSettle();
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Biología'), findsWidgets);
+  });
+
+  testWidgets('crea un apunte con texto y puntos', (tester) async {
+    final repository = FakeStudyRepository()..addProfile('Ana');
+    await _pumpApp(tester, repository);
+
+    await tester.tap(find.text('Apuntes').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Crear apunte'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), 'Saludo');
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'saluda\n* acercarse\n* presentarse\n* hablar',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('acercarse'), findsOneWidget);
+
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saludo'), findsOneWidget);
+    expect((await repository.listNotes(1)).single.content, contains('hablar'));
+  });
+
   testWidgets('crea una asignatura y la muestra en Mis materias', (
     tester,
   ) async {

@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'profile_avatars.dart';
 import 'repository.dart';
+import 'theme_store.dart';
 
 final repositoryProvider = Provider<StudyRepository>((ref) {
   throw UnimplementedError(
@@ -23,6 +26,29 @@ final selectedProfileIdProvider = NotifierProvider<SelectedProfileId, int?>(
   SelectedProfileId.new,
 );
 
+class ThemeModeController extends AsyncNotifier<ThemeMode> {
+  @override
+  Future<ThemeMode> build() async {
+    return await ThemeStore.load() ?? ThemeMode.system;
+  }
+
+  Future<void> select(ThemeMode mode) async {
+    state = AsyncData(mode);
+    await ThemeStore.save(mode);
+  }
+}
+
+final themeModeProvider = AsyncNotifierProvider<ThemeModeController, ThemeMode>(
+  ThemeModeController.new,
+);
+
+final profileAvatarProvider = FutureProvider.family<String?, int>((
+  ref,
+  profileId,
+) {
+  return ProfileAvatars.pathFor(profileId);
+});
+
 final activeProfileProvider = Provider<ProfileDto?>((ref) {
   final profiles = ref.watch(profilesProvider).asData?.value;
   if (profiles == null || profiles.isEmpty) {
@@ -44,6 +70,13 @@ final subjectsProvider = FutureProvider.family<List<SubjectDto>, int>((
   profileId,
 ) {
   return ref.watch(repositoryProvider).listSubjects(profileId);
+});
+
+final notesProvider = FutureProvider.family<List<NoteDto>, int>((
+  ref,
+  profileId,
+) {
+  return ref.watch(repositoryProvider).listNotes(profileId);
 });
 
 final documentsProvider = FutureProvider.family<List<DocumentDto>, int>((
@@ -141,10 +174,22 @@ class ProfileActions {
 
   Future<void> delete(int id) async {
     await _repo.deleteProfile(id);
+    await ProfileAvatars.remove(id);
     if (_ref.read(selectedProfileIdProvider) == id) {
       _ref.read(selectedProfileIdProvider.notifier).select(null);
     }
     _ref.invalidate(profilesProvider);
+    _ref.invalidate(profileAvatarProvider(id));
+  }
+
+  Future<void> setAvatar(int id, String sourcePath) async {
+    await ProfileAvatars.save(id, sourcePath);
+    _ref.invalidate(profileAvatarProvider(id));
+  }
+
+  Future<void> removeAvatar(int id) async {
+    await ProfileAvatars.remove(id);
+    _ref.invalidate(profileAvatarProvider(id));
   }
 }
 
@@ -179,6 +224,32 @@ class SubjectActions {
 final subjectActionsProvider = Provider<SubjectActions>(
   (ref) => SubjectActions(ref),
 );
+
+class NoteActions {
+  NoteActions(this._ref);
+
+  final Ref _ref;
+
+  StudyRepository get _repo => _ref.read(repositoryProvider);
+
+  Future<NoteDto> create(int profileId, String title, String content) async {
+    final created = await _repo.createNote(profileId, title, content);
+    _ref.invalidate(notesProvider);
+    return created;
+  }
+
+  Future<void> update(int id, String title, String content) async {
+    await _repo.updateNote(id, title, content);
+    _ref.invalidate(notesProvider);
+  }
+
+  Future<void> delete(int id) async {
+    await _repo.deleteNote(id);
+    _ref.invalidate(notesProvider);
+  }
+}
+
+final noteActionsProvider = Provider<NoteActions>((ref) => NoteActions(ref));
 
 class DocumentActions {
   DocumentActions(this._ref);
@@ -278,6 +349,11 @@ class PlanActions {
     _ref.invalidate(masteryProvider);
     _ref.invalidate(topicsProvider);
     _ref.invalidate(gamificationProvider);
+  }
+
+  Future<void> setSessionDuration(int id, int durationMin) async {
+    await _repo.updateSessionDuration(id, durationMin);
+    _ref.invalidate(sessionsProvider);
   }
 
   Future<ReplanResultDto> replan(int subjectId) async {

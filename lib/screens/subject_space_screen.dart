@@ -15,9 +15,14 @@ import '../widgets/subject_pdfs.dart';
 import '../widgets/subject_progress.dart';
 
 class SubjectSpaceScreen extends ConsumerWidget {
-  const SubjectSpaceScreen({super.key, required this.subject});
+  const SubjectSpaceScreen({
+    super.key,
+    required this.subject,
+    this.initialTabIndex,
+  });
 
   final SubjectDto subject;
+  final int? initialTabIndex;
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
     final directory = await FilePicker.getDirectoryPath(
@@ -57,6 +62,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
     final color = colorFromHex(subject.color);
     return DefaultTabController(
       length: 9,
+      initialIndex: initialTabIndex ?? 0,
       child: Scaffold(
         appBar: AppBar(
           elevation: 0,
@@ -81,9 +87,8 @@ class SubjectSpaceScreen extends ConsumerWidget {
                 child: Text(
                   subject.name,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -132,11 +137,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
                       color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      Icons.book_outlined,
-                      color: color,
-                      size: 18,
-                    ),
+                    child: Icon(Icons.book_outlined, color: color, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -145,16 +146,18 @@ class SubjectSpaceScreen extends ConsumerWidget {
                       children: [
                         Text(
                           subject.name,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Espacio de la asignatura',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -184,7 +187,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
                   SubjectAssessmentsPanel(subject: subject),
                   SubjectProgressPanel(subject: subject),
                   SubjectMusicPanel(subject: subject),
-                  SubjectClassStartPanel(subject: subject),
+                  SubjectClassStartPanel(subjectId: subject.id),
                   SubjectPdfsPanel(subjectId: subject.id),
                 ],
               ),
@@ -198,10 +201,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
             Tab(icon: Icon(Icons.event_note_outlined), text: 'Agenda'),
             Tab(icon: Icon(Icons.folder_outlined), text: 'Archivos'),
             Tab(icon: Icon(Icons.checklist_outlined), text: 'Tareas'),
-            Tab(
-              icon: Icon(Icons.calendar_month_outlined),
-              text: 'Calendario',
-            ),
+            Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Calendario'),
             Tab(icon: Icon(Icons.quiz_outlined), text: 'Evaluaciones'),
             Tab(icon: Icon(Icons.insights_outlined), text: 'Progreso'),
             Tab(icon: Icon(Icons.music_note_outlined), text: 'Música'),
@@ -227,12 +227,6 @@ class _StagePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EmptyState(
-      icon: icon,
-      title: title,
-      message: message,
-    );
+    return EmptyState(icon: icon, title: title, message: message);
   }
 }
-
-

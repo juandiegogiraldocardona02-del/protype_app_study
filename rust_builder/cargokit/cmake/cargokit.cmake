@@ -27,6 +27,10 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
     endif()
     if (DEFINED ENV{STUDY_PLANNER_CARGOKIT_TEMP_DIR})
         set(CARGOKIT_TEMP_DIR "$ENV{STUDY_PLANNER_CARGOKIT_TEMP_DIR}")
+    elseif (WIN32 AND DEFINED ENV{TEMP})
+        # Keep the Rust build directory short: MSBuild's file tracker fails
+        # with paths longer than MAX_PATH on Windows when building llama.cpp.
+        set(CARGOKIT_TEMP_DIR "$ENV{TEMP}/ck/${PROJECT_NAME}")
     else()
         set(CARGOKIT_TEMP_DIR "${CMAKE_CURRENT_BINARY_DIR}/cargokit_build")
     endif()

@@ -4,6 +4,7 @@ class FakeStudyRepository implements StudyRepository {
   FakeStudyRepository();
 
   final Map<int, ProfileDto> _profiles = <int, ProfileDto>{};
+  final Map<int, NoteDto> _notes = <int, NoteDto>{};
   final Map<int, List<SubjectDto>> _subjects = <int, List<SubjectDto>>{};
   final Map<int, List<DocumentDto>> _documents = <int, List<DocumentDto>>{};
   final Map<int, List<TopicDto>> _topics = <int, List<TopicDto>>{};
@@ -21,6 +22,7 @@ class FakeStudyRepository implements StudyRepository {
   final Set<int> _xpSessions = <int>{};
   final Set<int> _xpMasteredTopics = <int>{};
   int _nextProfileId = 1;
+  int _nextNoteId = 1;
   int _nextSubjectId = 1;
   int _nextDocumentId = 1;
   int _nextTopicId = 1;
@@ -117,9 +119,66 @@ class FakeStudyRepository implements StudyRepository {
   @override
   Future<void> deleteProfile(int id) async {
     _profiles.remove(id);
+    _notes.removeWhere((_, note) => note.profileId == id);
     for (final subject in _subjects.remove(id) ?? const <SubjectDto>[]) {
       _removeSubjectData(subject.id);
     }
+  }
+
+  @override
+  Future<List<NoteDto>> listNotes(int profileId) async {
+    final notes =
+        _notes.values.where((note) => note.profileId == profileId).toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return notes;
+  }
+
+  @override
+  Future<NoteDto> createNote(
+    int profileId,
+    String title,
+    String content,
+  ) async {
+    if (!_profiles.containsKey(profileId)) {
+      throw StateError('perfil $profileId no encontrado');
+    }
+    if (title.trim().isEmpty) {
+      throw StateError('el título no puede estar vacío');
+    }
+    final note = NoteDto(
+      id: _nextNoteId++,
+      profileId: profileId,
+      title: title.trim(),
+      content: content,
+      updatedAt: DateTime.now().toIso8601String(),
+    );
+    _notes[note.id] = note;
+    return note;
+  }
+
+  @override
+  Future<NoteDto> updateNote(int id, String title, String content) async {
+    final current = _notes[id];
+    if (current == null) {
+      throw StateError('apunte $id no encontrado');
+    }
+    if (title.trim().isEmpty) {
+      throw StateError('el título no puede estar vacío');
+    }
+    final note = NoteDto(
+      id: id,
+      profileId: current.profileId,
+      title: title.trim(),
+      content: content,
+      updatedAt: DateTime.now().toIso8601String(),
+    );
+    _notes[id] = note;
+    return note;
+  }
+
+  @override
+  Future<void> deleteNote(int id) async {
+    _notes.remove(id);
   }
 
   void _removeSubjectData(int subjectId) {
@@ -714,6 +773,26 @@ class FakeStudyRepository implements StudyRepository {
       _addXp(_profileForSubject(current.subjectId), config.session);
       _recordStreak(_profileForSubject(current.subjectId));
     }
+  }
+
+  @override
+  Future<void> updateSessionDuration(int id, int durationMin) async {
+    final current = _sessions[id];
+    if (current == null) {
+      throw StateError('sesión $id no encontrada');
+    }
+    _sessions[id] = SessionDto(
+      id: current.id,
+      subjectId: current.subjectId,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectName: current.subjectName,
+      subjectColor: current.subjectColor,
+      start: current.start,
+      durationMin: durationMin,
+      state: current.state,
+      originalStart: current.originalStart,
+    );
   }
 
   @override

@@ -5,8 +5,10 @@ import '../screens/assistant_screen.dart';
 import '../screens/calendar_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/library_screen.dart';
+import '../screens/notes_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/stats_screen.dart';
+import '../screens/study_plan_screen.dart';
 import '../screens/subjects_screen.dart';
 import '../state/providers.dart';
 import 'profile_switcher.dart';
@@ -22,6 +24,12 @@ class _Destination {
 const List<_Destination> _destinations = [
   _Destination('Inicio', Icons.home_outlined, Icons.home),
   _Destination('Mis materias', Icons.menu_book_outlined, Icons.menu_book),
+  _Destination(
+    'Plan de estudio',
+    Icons.auto_stories_outlined,
+    Icons.auto_stories,
+  ),
+  _Destination('Apuntes', Icons.edit_note_outlined, Icons.edit_note),
   _Destination(
     'Calendario',
     Icons.calendar_month_outlined,
@@ -44,6 +52,8 @@ class AppShell extends ConsumerWidget {
     final pages = <Widget>[
       const HomeScreen(),
       const SubjectsScreen(),
+      const StudyPlanScreen(),
+      const NotesScreen(),
       const CalendarScreen(),
       const LibraryScreen(),
       const StatsScreen(),
@@ -76,8 +86,11 @@ class AppShell extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.school_outlined,
-                    color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.school_outlined,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -87,22 +100,15 @@ class AppShell extends ConsumerWidget {
                   children: [
                     Text(
                       'Planificador',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
+                      style: Theme.of(context).textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Estudio offline',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -123,15 +129,17 @@ class AppShell extends ConsumerWidget {
               _destinations[i].selectedIcon,
               color: Theme.of(context).colorScheme.primary,
             ),
-            label: Text(
-              _destinations[i].label,
-              style: TextStyle(
-                fontWeight: i == index
-                    ? FontWeight.w600
-                    : FontWeight.w500,
-                color: i == index
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+            label: Flexible(
+              child: Text(
+                _destinations[i].label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: i == index ? FontWeight.w600 : FontWeight.w500,
+                  color: i == index
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -157,21 +165,21 @@ class AppShell extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.school_outlined,
-                  color: Colors.white, size: 18),
+              child: Icon(
+                _destinations[index].selectedIcon,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 10),
             Text(
               _destinations[index].label,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
-        actions: [
-          const ProfileSwitcher(),
-        ],
+        actions: [const ProfileSwitcher()],
       ),
       drawer: wide ? null : Drawer(child: SafeArea(child: navigation)),
       body: wide

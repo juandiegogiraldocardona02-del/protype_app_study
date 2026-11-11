@@ -6,7 +6,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::defaults::{PROFILE_CONFIG, SUBJECT_COLOR, SUBJECT_XP_CONFIG};
 use crate::domain::{
-    Assessment, AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview,
+    Assessment, AvailabilityDay, Document, Flashcard, FlashcardProposal, MasteryOverview, Note,
     PlanSettings, PlannedSession, Profile, ReviewResult, Session, Streak, Subject, Topic, XpConfig,
 };
 use crate::error::{CoreError, CoreResult};
@@ -21,6 +21,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (4, include_str!("../../migrations/0004_learning.sql")),
     (5, include_str!("../../migrations/0005_gamification.sql")),
     (6, include_str!("../../migrations/0006_assessments.sql")),
+    (7, include_str!("../../migrations/0007_notes.sql")),
 ];
 
 const MAX_NAME_LEN: usize = 120;
@@ -162,6 +163,86 @@ impl Database {
             return Err(CoreError::NotFound(format!("perfil {id}")));
         }
         log_change(&tx, "profile", id, "eliminar")?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn list_notes(&self, profile_id: i64) -> CoreResult<Vec<Note>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, profile_id, titulo, contenido, updated_at
+             FROM notes WHERE profile_id = ?1
+             ORDER BY updated_at DESC, id DESC",
+        )?;
+        let rows = stmt.query_map(params![profile_id], note_from_row)?;
+        let mut notes = Vec::new();
+        for row in rows {
+            notes.push(row?);
+        }
+        Ok(notes)
+    }
+
+    pub fn get_note(&self, id: i64) -> CoreResult<Note> {
+        self.conn
+            .query_row(
+                "SELECT id, profile_id, titulo, contenido, updated_at
+                 FROM notes WHERE id = ?1",
+                params![id],
+                note_from_row,
+            )
+            .optional()?
+            .ok_or_else(|| CoreError::NotFound(format!("apunte {id}")))
+    }
+
+    pub fn create_note(&mut self, profile_id: i64, title: &str, content: &str) -> CoreResult<Note> {
+        let title = validate_note_title(title)?;
+        let tx = self.conn.transaction()?;
+        let profile_exists: bool = tx
+            .query_row(
+                "SELECT 1 FROM profiles WHERE id = ?1",
+                params![profile_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .is_some();
+        if !profile_exists {
+            return Err(CoreError::NotFound(format!("perfil {profile_id}")));
+        }
+        tx.execute(
+            "INSERT INTO notes (profile_id, titulo, contenido) VALUES (?1, ?2, ?3)",
+            params![profile_id, title, content],
+        )?;
+        let id = tx.last_insert_rowid();
+        log_change(&tx, "note", id, "crear")?;
+        tx.commit()?;
+        self.get_note(id)
+    }
+
+    pub fn update_note(&mut self, id: i64, title: &str, content: &str) -> CoreResult<Note> {
+        let title = validate_note_title(title)?;
+        let tx = self.conn.transaction()?;
+        let updated = tx.execute(
+            "UPDATE notes
+             SET titulo = ?2,
+                 contenido = ?3,
+                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = ?1",
+            params![id, title, content],
+        )?;
+        if updated == 0 {
+            return Err(CoreError::NotFound(format!("apunte {id}")));
+        }
+        log_change(&tx, "note", id, "editar")?;
+        tx.commit()?;
+        self.get_note(id)
+    }
+
+    pub fn delete_note(&mut self, id: i64) -> CoreResult<()> {
+        let tx = self.conn.transaction()?;
+        let deleted = tx.execute("DELETE FROM notes WHERE id = ?1", params![id])?;
+        if deleted == 0 {
+            return Err(CoreError::NotFound(format!("apunte {id}")));
+        }
+        log_change(&tx, "note", id, "eliminar")?;
         tx.commit()?;
         Ok(())
     }
@@ -745,6 +826,25 @@ impl Database {
         if let Some(topic_id) = topic_id {
             self.refresh_topic_mastery(topic_id)?;
         }
+        Ok(())
+    }
+
+    pub fn update_session_duration(&mut self, id: i64, duration_min: i64) -> CoreResult<()> {
+        if duration_min <= 0 {
+            return Err(CoreError::Validation(
+                "la duración de la sesión debe ser mayor que cero".into(),
+            ));
+        }
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE sessions SET duracion_min = ?2 WHERE id = ?1",
+            params![id, duration_min],
+        )?;
+        if changed == 0 {
+            return Err(CoreError::NotFound(format!("sesión {id}")));
+        }
+        log_change(&tx, "session", id, "ajustar_duracion")?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -1479,6 +1579,31 @@ fn validate_difficulty(value: f64) -> CoreResult<f64> {
     Ok(value)
 }
 
+fn note_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Note> {
+    Ok(Note {
+        id: row.get(0)?,
+        profile_id: row.get(1)?,
+        title: row.get(2)?,
+        content: row.get(3)?,
+        updated_at: row.get(4)?,
+    })
+}
+
+fn validate_note_title(title: &str) -> CoreResult<&str> {
+    let trimmed = title.trim();
+    if trimmed.is_empty() {
+        return Err(CoreError::Validation(
+            "el título del apunte no puede estar vacío".to_string(),
+        ));
+    }
+    if trimmed.chars().count() > MAX_NAME_LEN {
+        return Err(CoreError::Validation(format!(
+            "el título del apunte no puede superar {MAX_NAME_LEN} caracteres"
+        )));
+    }
+    Ok(trimmed)
+}
+
 fn validate_name(name: &str) -> CoreResult<&str> {
     let trimmed = name.trim();
     if trimmed.is_empty() {
@@ -1838,6 +1963,32 @@ mod tests {
             assert_eq!(subjects[0].name, "Matemáticas");
         }
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn notes_are_isolated_and_editable() {
+        let mut db = Database::open_in_memory().expect("abrir bd");
+        let ana = db.create_profile("Ana").expect("perfil");
+        let luis = db.create_profile("Luis").expect("perfil");
+        let note = db
+            .create_note(ana.id, "Saludo", "saluda\n* acercarse")
+            .expect("crear apunte");
+        assert_eq!(note.title, "Saludo");
+        assert!(db.list_notes(luis.id).expect("listar").is_empty());
+
+        let updated = db
+            .update_note(note.id, "Saludo formal", "* presentarse")
+            .expect("editar apunte");
+        assert_eq!(updated.title, "Saludo formal");
+        assert_eq!(updated.content, "* presentarse");
+
+        db.delete_note(note.id).expect("eliminar apunte");
+        assert!(db.list_notes(ana.id).expect("listar").is_empty());
+
+        let error = db
+            .create_note(ana.id, "   ", "texto")
+            .expect_err("título vacío");
+        assert!(matches!(error, CoreError::Validation(_)));
     }
 
     #[test]
