@@ -196,6 +196,10 @@ struct SessionRecord {
     duration_min: i64,
     state: String,
     original_start: Option<String>,
+    #[serde(default)]
+    studied_seconds: i64,
+    #[serde(default)]
+    started_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1194,15 +1198,18 @@ fn insert_subject(
             .and_then(|old_id| maps.topics.get(&old_id).copied());
         tx.execute(
             "INSERT INTO sessions
-                (subject_id, topic_id, inicio, duracion_min, estado, inicio_original)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                (subject_id, topic_id, inicio, duracion_min, estado, inicio_original,
+                 estudio_segundos, iniciada_en)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 subject_id,
                 topic_id,
                 session.start,
                 session.duration_min,
                 session.state,
-                session.original_start
+                session.original_start,
+                session.studied_seconds,
+                session.started_at
             ],
         )?;
         maps.sessions.insert(session.old_id, tx.last_insert_rowid());
@@ -1511,7 +1518,8 @@ fn collect_subject(conn: &Connection, subject_id: i64) -> CoreResult<SubjectReco
     let mut sessions = Vec::new();
     {
         let mut stmt = conn.prepare(
-            "SELECT id, topic_id, inicio, duracion_min, estado, inicio_original
+            "SELECT id, topic_id, inicio, duracion_min, estado, inicio_original,
+                    estudio_segundos, iniciada_en
              FROM sessions WHERE subject_id = ?1 ORDER BY id ASC",
         )?;
         let rows = stmt.query_map(params![subject_id], |row| {
@@ -1522,6 +1530,8 @@ fn collect_subject(conn: &Connection, subject_id: i64) -> CoreResult<SubjectReco
                 duration_min: row.get(3)?,
                 state: row.get(4)?,
                 original_start: row.get(5)?,
+                studied_seconds: row.get(6)?,
+                started_at: row.get(7)?,
             })
         })?;
         for row in rows {

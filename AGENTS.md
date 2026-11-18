@@ -125,7 +125,7 @@ cargo fmt && cargo clippy -- -D warnings   # obligatorio antes de commit
 | `topics` | id, subject_id, parent_id, nombre, dificultad, dominio REAL | Jerarquía recursiva; 1:N → flashcards |
 | `documents` | id, subject_id, ruta_local, tipo, hash, version | 1:N → document_chunks |
 | `document_chunks` | id, document_id, texto, seccion | — |
-| `sessions` | id, subject_id, topic_id, inicio, duracion_min, estado (pendiente/completada/replanificada) | — |
+| `sessions` | id, subject_id, topic_id, inicio, duracion_min, estado (pendiente/completada/replanificada), estudio_segundos, iniciada_en | — |
 | `flashcards` | id, topic_id, pregunta, respuesta, intervalo_dias, proxima_revision | — |
 | `assessments` | id, subject_id, tipo, puntuacion, fecha | — |
 | `xp_log` | id, profile_id, actividad, xp, timestamp | — |

@@ -21,6 +21,7 @@ export '../bridge/bridge.dart'
         FlashcardDto,
         FlashcardProposalDto,
         GamificationSummaryDto,
+        GuidedPlanDto,
         ImportOutcomeDto,
         MasteryOverviewDto,
         NoteDto,
@@ -108,6 +109,12 @@ abstract class StudyRepository {
 
   Future<PlanProposalDto> previewPlan(int subjectId);
 
+  Future<GuidedPlanDto> previewGuidedPlan(
+    int subjectId,
+    String level,
+    bool includeToday,
+  );
+
   Future<int> savePlan(int subjectId, List<PlannedSessionDto> sessions);
 
   Future<List<SessionDto>> listSessions(
@@ -120,6 +127,14 @@ abstract class StudyRepository {
   Future<void> setSessionState(int id, String state);
 
   Future<void> updateSessionDuration(int id, int durationMin);
+
+  Future<void> startSession(int id);
+
+  Future<void> pauseSession(int id, int studiedSeconds);
+
+  Future<void> completeSession(int id, int studiedSeconds);
+
+  Future<int> finishSessionEarly(int id, int studiedSeconds);
 
   Future<ReplanResultDto> replanSubject(int subjectId);
 

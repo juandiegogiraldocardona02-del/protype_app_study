@@ -13,6 +13,7 @@ import '../widgets/subject_class_start.dart';
 import '../widgets/subject_music.dart';
 import '../widgets/subject_pdfs.dart';
 import '../widgets/subject_progress.dart';
+import '../widgets/subject_tasks.dart';
 
 class SubjectSpaceScreen extends ConsumerWidget {
   const SubjectSpaceScreen({
@@ -170,13 +171,7 @@ class SubjectSpaceScreen extends ConsumerWidget {
                 children: [
                   SubjectAgendaPanel(subject: subject),
                   DocumentLibrary(subjectId: subject.id),
-                  const _StagePanel(
-                    icon: Icons.checklist_outlined,
-                    title: 'Tareas',
-                    message:
-                        'Las tareas vinculadas al calendario se habilitarán junto con '
-                        'la planificación (etapa E3).',
-                  ),
+                  SubjectTasksPanel(subjectId: subject.id),
                   const _StagePanel(
                     icon: Icons.calendar_month_outlined,
                     title: 'Calendario propio',

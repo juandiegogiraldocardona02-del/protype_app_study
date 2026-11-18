@@ -5,6 +5,7 @@ import '../state/app_sections.dart';
 import '../state/providers.dart';
 import '../state/repository.dart' show SubjectDto;
 import '../widgets/empty_state.dart';
+import '../widgets/guided_plan_dialog.dart';
 import 'subject_space_screen.dart';
 
 enum StudyTarget {
@@ -45,10 +46,15 @@ extension StudyTargetIcon on StudyTarget {
 }
 
 class StudyAction {
-  const StudyAction({required this.label, required this.target});
+  const StudyAction({
+    required this.label,
+    required this.target,
+    this.generatePlan = false,
+  });
 
   final String label;
   final StudyTarget target;
+  final bool generatePlan;
 }
 
 class StudyStep {
@@ -308,6 +314,7 @@ const List<StudyPhase> _phases = <StudyPhase>[
         action: StudyAction(
           label: 'Programar en el calendario',
           target: StudyTarget.calendar,
+          generatePlan: true,
         ),
       ),
       StudyStep(
@@ -402,6 +409,10 @@ class StudyPlanScreen extends ConsumerWidget {
     WidgetRef ref,
     StudyAction action,
   ) async {
+    if (action.generatePlan) {
+      await _scheduleGuidedPlan(context, ref);
+      return;
+    }
     final tabIndex = _subjectTabIndex(action.target);
     if (tabIndex != null) {
       await _openSubjectTab(context, ref, tabIndex);
@@ -410,6 +421,71 @@ class StudyPlanScreen extends ConsumerWidget {
     final section = _sectionIndex(action.target);
     if (section != null) {
       ref.read(navigationIndexProvider.notifier).select(section);
+    }
+  }
+
+  Future<void> _scheduleGuidedPlan(BuildContext context, WidgetRef ref) async {
+    final profile = ref.read(activeProfileProvider);
+    if (profile == null) {
+      return;
+    }
+    final subjects = await ref.read(subjectsProvider(profile.id).future);
+    if (!context.mounted) {
+      return;
+    }
+    if (subjects.isEmpty) {
+      ref.read(navigationIndexProvider.notifier).select(AppSections.subjects);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Crea una asignatura antes de programar el repaso.'),
+        ),
+      );
+      return;
+    }
+    final subject = subjects.length == 1
+        ? subjects.first
+        : await _chooseSubject(context, subjects);
+    if (subject == null || !context.mounted) {
+      return;
+    }
+    final choice = await showGuidedPlanDialog(
+      context,
+      subjects: subjects,
+      initialSubjectId: subject.id,
+    );
+    if (choice == null || choice.sessions.isEmpty || !context.mounted) {
+      return;
+    }
+    try {
+      final count = await ref
+          .read(planActionsProvider)
+          .save(choice.subjectId, choice.sessions);
+      if (!context.mounted) {
+        return;
+      }
+      final selectedSubject = subjects.firstWhere(
+        (item) => item.id == choice.subjectId,
+        orElse: () => subject,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Plan guardado con $count secciones. Se abrirá Tareas para iniciarlo.',
+          ),
+        ),
+      );
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              SubjectSpaceScreen(subject: selectedSubject, initialTabIndex: 2),
+        ),
+      );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo guardar el plan: $error')),
+        );
+      }
     }
   }
 

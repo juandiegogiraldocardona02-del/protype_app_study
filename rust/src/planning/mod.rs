@@ -6,15 +6,140 @@ use std::collections::HashMap;
 use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 
 use crate::db::Database;
-use crate::domain::{PlanProposal, PlanSettings, PlannedSession, ReplanResult, Session, Topic};
+use crate::domain::{
+    GuidedPlanProposal, PlanProposal, PlanSettings, PlannedSession, ReplanResult, Session, Topic,
+};
 use crate::error::{CoreError, CoreResult};
 
 const MAX_SCAN_DAYS: i64 = 730;
+
+#[derive(Debug, Clone)]
+struct SessionRequest {
+    topic_id: Option<i64>,
+    topic_name: String,
+    duration_min: i64,
+}
+
+struct GuideStep {
+    title: &'static str,
+    minutes: i64,
+}
+
+struct IntensityPreset {
+    level: &'static str,
+    label: &'static str,
+    description: &'static str,
+    multiplier: f64,
+    steps: &'static [usize],
+    topics: usize,
+}
+
+const GUIDE_STEPS: &[GuideStep] = &[
+    GuideStep {
+        title: "Definir objetivo",
+        minutes: 3,
+    },
+    GuideStep {
+        title: "Preparar material",
+        minutes: 5,
+    },
+    GuideStep {
+        title: "Entrar en estado",
+        minutes: 7,
+    },
+    GuideStep {
+        title: "Macrolectura",
+        minutes: 8,
+    },
+    GuideStep {
+        title: "Formular preguntas",
+        minutes: 5,
+    },
+    GuideStep {
+        title: "Lectura activa",
+        minutes: 25,
+    },
+    GuideStep {
+        title: "Pausa activa",
+        minutes: 2,
+    },
+    GuideStep {
+        title: "Escucha activa",
+        minutes: 15,
+    },
+    GuideStep {
+        title: "Mapa mental",
+        minutes: 10,
+    },
+    GuideStep {
+        title: "Recitación",
+        minutes: 10,
+    },
+    GuideStep {
+        title: "Autoevaluación",
+        minutes: 10,
+    },
+    GuideStep {
+        title: "Enseñar a otra persona",
+        minutes: 5,
+    },
+    GuideStep {
+        title: "Repaso espaciado",
+        minutes: 5,
+    },
+    GuideStep {
+        title: "Descanso y sueño",
+        minutes: 480,
+    },
+    GuideStep {
+        title: "Revisión semanal",
+        minutes: 20,
+    },
+];
+
+const PRESET_MEDIO: IntensityPreset = IntensityPreset {
+    level: "medio",
+    label: "Medio",
+    description: "Repaso ligero: objetivo, preparación, macrolectura y repaso espaciado.",
+    multiplier: 0.6,
+    steps: &[0, 1, 3, 5, 10, 12],
+    topics: 1,
+};
+
+const PRESET_INTERMEDIO: IntensityPreset = IntensityPreset {
+    level: "intermedio",
+    label: "Intermedio · recomendado",
+    description: "Plan recomendado: lectura activa, mapa mental, recitación y autoevaluación.",
+    multiplier: 1.0,
+    steps: &[0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 14],
+    topics: 2,
+};
+
+const PRESET_INTENSO: IntensityPreset = IntensityPreset {
+    level: "intenso",
+    label: "Intenso",
+    description: "Cobertura completa: añade escucha activa, enseñanza y repaso semanal.",
+    multiplier: 1.3,
+    steps: &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14],
+    topics: 3,
+};
 
 pub fn preview_plan(db: &Database, subject_id: i64) -> CoreResult<PlanProposal> {
     let topics = db.list_topics(subject_id)?;
     let settings = db.get_plan_settings(subject_id)?;
     generate_plan(&topics, &settings, Local::now().date_naive())
+}
+
+pub fn preview_guided_plan(
+    db: &Database,
+    subject_id: i64,
+    level: &str,
+    include_today: bool,
+) -> CoreResult<GuidedPlanProposal> {
+    let topics = db.list_topics(subject_id)?;
+    let settings = db.get_plan_settings(subject_id)?;
+    let now = Local::now().naive_local();
+    generate_guided_plan(&topics, &settings, now.date(), now, level, include_today)
 }
 
 pub fn save_plan(
@@ -76,6 +201,87 @@ pub fn generate_plan(
             "añade al menos un tema antes de generar el plan".to_string(),
         ));
     }
+
+    let mut requests = Vec::new();
+    for topic in topics {
+        for _ in 0..sessions_for_topic(topic.difficulty) {
+            requests.push(SessionRequest {
+                topic_id: Some(topic.id),
+                topic_name: topic.name.clone(),
+                duration_min: settings.session_minutes,
+            });
+        }
+    }
+    let now = start_date
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| CoreError::Validation("hora inicial inválida".to_string()))?;
+    schedule_requests(&requests, settings, start_date, now, false, false)
+}
+
+pub fn generate_guided_plan(
+    topics: &[Topic],
+    settings: &PlanSettings,
+    start_date: NaiveDate,
+    now: NaiveDateTime,
+    level: &str,
+    include_today: bool,
+) -> CoreResult<GuidedPlanProposal> {
+    validate_base_settings(settings)?;
+    if topics.is_empty() {
+        return Err(CoreError::Validation(
+            "añade al menos un tema antes de generar el plan".to_string(),
+        ));
+    }
+    let preset = intensity_preset(level)?;
+    let mut ordered = topics.to_vec();
+    ordered.sort_by(|left, right| {
+        right
+            .difficulty
+            .total_cmp(&left.difficulty)
+            .then_with(|| left.mastery.total_cmp(&right.mastery))
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    let selected = &ordered[..preset.topics.min(ordered.len())];
+    let mut requests = Vec::new();
+    for topic in selected {
+        for index in preset.steps {
+            let step = &GUIDE_STEPS[*index];
+            let duration = ((step.minutes as f64 * preset.multiplier).round() as i64).max(5);
+            requests.push(SessionRequest {
+                topic_id: Some(topic.id),
+                topic_name: format!("{} · {}", step.title, topic.name),
+                duration_min: duration,
+            });
+        }
+    }
+    let proposal = schedule_requests(&requests, settings, start_date, now, include_today, true)?;
+    Ok(GuidedPlanProposal {
+        level: preset.level.to_string(),
+        label: preset.label.to_string(),
+        description: preset.description.to_string(),
+        topics_count: selected.len() as i64,
+        steps_count: preset.steps.len() as i64,
+        total_minutes: proposal.total_minutes,
+        weekly_minutes: proposal.weekly_minutes,
+        last_date: proposal.last_date,
+        sessions: proposal.sessions,
+    })
+}
+
+fn schedule_requests(
+    requests: &[SessionRequest],
+    settings: &PlanSettings,
+    start_date: NaiveDate,
+    now: NaiveDateTime,
+    include_today: bool,
+    use_current_slot: bool,
+) -> CoreResult<PlanProposal> {
+    validate_base_settings(settings)?;
+    if requests.is_empty() {
+        return Err(CoreError::Validation(
+            "el plan debe contener al menos una sesión".to_string(),
+        ));
+    }
     let deadline = parse_deadline(settings)?;
     if deadline < start_date {
         return Err(CoreError::Validation(
@@ -83,26 +289,36 @@ pub fn generate_plan(
         ));
     }
 
-    let duration = settings.session_minutes;
-    let capacity: HashMap<i64, i64> = settings
+    let max_duration = requests
+        .iter()
+        .map(|request| request.duration_min)
+        .max()
+        .unwrap_or(settings.session_minutes);
+    let mut capacity: HashMap<i64, i64> = settings
         .availability
         .iter()
         .map(|day| (day.weekday, day.minutes))
         .collect();
-
-    let mut queue: Vec<(Option<i64>, String)> = Vec::new();
-    for topic in topics {
-        for _ in 0..sessions_for_topic(topic.difficulty) {
-            queue.push((Some(topic.id), topic.name.clone()));
-        }
+    if include_today {
+        let weekday = start_date.weekday().number_from_monday() as i64;
+        let forced = max_duration.max(120);
+        capacity
+            .entry(weekday)
+            .and_modify(|minutes| *minutes = (*minutes).max(forced))
+            .or_insert(forced);
+    }
+    if !capacity.values().any(|minutes| *minutes >= max_duration) {
+        return Err(CoreError::Validation(
+            "ningún día tiene capacidad para una sesión completa".to_string(),
+        ));
     }
 
-    let mut sessions = Vec::with_capacity(queue.len());
+    let mut sessions = Vec::with_capacity(requests.len());
     let mut index = 0usize;
     let mut day = start_date;
     let mut scanned = 0i64;
 
-    while index < queue.len() {
+    while index < requests.len() {
         if day > deadline || scanned >= MAX_SCAN_DAYS {
             return Err(CoreError::Validation(
                 "el plan no cabe antes de la fecha límite; amplía la disponibilidad \
@@ -113,23 +329,29 @@ pub fn generate_plan(
         let weekday = day.weekday().number_from_monday() as i64;
         if let Some(minutes) = capacity.get(&weekday) {
             let mut used = 0i64;
-            let mut slot = 0i64;
-            while index < queue.len() && used + duration <= *minutes {
-                let start = at_hour(day, settings.start_hour)? + Duration::minutes(slot * duration);
-                let end = start + Duration::minutes(duration);
+            let mut slot_start = if use_current_slot && day == now.date() {
+                first_slot(day, settings.start_hour, now)?
+            } else {
+                at_hour(day, settings.start_hour)?
+            };
+            while index < requests.len() {
+                let request = &requests[index];
+                if used + request.duration_min > *minutes {
+                    break;
+                }
+                let end = slot_start + Duration::minutes(request.duration_min);
                 if end.date() != day {
                     break;
                 }
-                let (topic_id, topic_name) = queue[index].clone();
                 sessions.push(PlannedSession {
-                    topic_id,
-                    topic_name,
-                    start: format_start(start),
-                    duration_min: duration,
+                    topic_id: request.topic_id,
+                    topic_name: request.topic_name.clone(),
+                    start: format_start(slot_start),
+                    duration_min: request.duration_min,
                     state: "pendiente".to_string(),
                 });
-                used += duration;
-                slot += 1;
+                used += request.duration_min;
+                slot_start = end;
                 index += 1;
             }
         }
@@ -143,13 +365,28 @@ pub fn generate_plan(
         .last()
         .map(|session| session.start[..10].to_string())
         .unwrap_or_else(|| start_date.to_string());
+    let total_minutes = sessions
+        .iter()
+        .map(|session| session.duration_min)
+        .sum::<i64>();
 
     Ok(PlanProposal {
-        total_minutes: sessions.len() as i64 * duration,
+        total_minutes,
         weekly_minutes: settings.weekly_minutes(),
         last_date,
         sessions,
     })
+}
+
+fn intensity_preset(level: &str) -> CoreResult<&'static IntensityPreset> {
+    match level.trim().to_lowercase().as_str() {
+        "medio" => Ok(&PRESET_MEDIO),
+        "intermedio" => Ok(&PRESET_INTERMEDIO),
+        "intenso" => Ok(&PRESET_INTENSO),
+        _ => Err(CoreError::Validation(
+            "intensidad no válida; usa medio, intermedio o intenso".to_string(),
+        )),
+    }
 }
 
 pub fn reschedule_pending(
@@ -235,6 +472,20 @@ pub fn reschedule_pending(
 }
 
 fn validate_settings(settings: &PlanSettings) -> CoreResult<()> {
+    validate_base_settings(settings)?;
+    if !settings
+        .availability
+        .iter()
+        .any(|day| day.minutes >= settings.session_minutes)
+    {
+        return Err(CoreError::Validation(
+            "ningún día tiene capacidad para una sesión completa".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_base_settings(settings: &PlanSettings) -> CoreResult<()> {
     if !(15..=240).contains(&settings.session_minutes) {
         return Err(CoreError::Validation(
             "la duración de sesión debe estar entre 15 y 240 minutos".to_string(),
@@ -248,15 +499,6 @@ fn validate_settings(settings: &PlanSettings) -> CoreResult<()> {
     if settings.availability.is_empty() {
         return Err(CoreError::Validation(
             "configura al menos un día de disponibilidad".to_string(),
-        ));
-    }
-    if !settings
-        .availability
-        .iter()
-        .any(|day| day.minutes >= settings.session_minutes)
-    {
-        return Err(CoreError::Validation(
-            "ningún día tiene capacidad para una sesión completa".to_string(),
         ));
     }
     Ok(())
@@ -388,6 +630,79 @@ mod tests {
     }
 
     #[test]
+    fn guided_plans_scale_by_intensity() {
+        let topics = vec![
+            topic(1, "Tema 1", 3.0),
+            topic(2, "Tema 2", 2.0),
+            topic(3, "Tema 3", 1.0),
+        ];
+        let now = date(2026, 2, 2).and_hms_opt(8, 0, 0).expect("hora");
+        let medio = generate_guided_plan(
+            &topics,
+            &settings(50),
+            date(2026, 2, 2),
+            now,
+            "medio",
+            false,
+        )
+        .expect("medio");
+        let intermedio = generate_guided_plan(
+            &topics,
+            &settings(50),
+            date(2026, 2, 2),
+            now,
+            "Intermedio",
+            false,
+        )
+        .expect("intermedio");
+        let intenso = generate_guided_plan(
+            &topics,
+            &settings(50),
+            date(2026, 2, 2),
+            now,
+            "intenso",
+            false,
+        )
+        .expect("intenso");
+
+        assert_eq!(medio.topics_count, 1);
+        assert_eq!(medio.steps_count, 6);
+        assert_eq!(medio.sessions.len(), 6);
+        assert_eq!(intermedio.topics_count, 2);
+        assert_eq!(intermedio.steps_count, 12);
+        assert_eq!(intermedio.sessions.len(), 24);
+        assert_eq!(intenso.topics_count, 3);
+        assert_eq!(intenso.steps_count, 14);
+        assert_eq!(intenso.sessions.len(), 42);
+        assert!(medio.total_minutes < intermedio.total_minutes);
+        assert!(intermedio.total_minutes < intenso.total_minutes);
+        assert!(intenso.last_date.as_str() <= "2026-02-28");
+    }
+
+    #[test]
+    fn guided_plan_can_include_today_outside_availability() {
+        let topics = vec![topic(1, "Tema 1", 3.0)];
+        let monday = PlanSettings {
+            deadline: "2026-03-31".to_string(),
+            availability: vec![AvailabilityDay {
+                weekday: 1,
+                minutes: 120,
+            }],
+            ..settings(50)
+        };
+        let start = date(2026, 2, 3);
+        let now = start.and_hms_opt(10, 0, 0).expect("hora");
+        let without_today =
+            generate_guided_plan(&topics, &monday, start, now, "medio", false).expect("sin hoy");
+        let with_today =
+            generate_guided_plan(&topics, &monday, start, now, "medio", true).expect("con hoy");
+
+        assert_eq!(without_today.sessions[0].start, "2026-02-09T08:00:00");
+        assert_eq!(with_today.sessions[0].start, "2026-02-03T10:00:00");
+        assert_eq!(&with_today.sessions[0].start[..10], "2026-02-03");
+    }
+
+    #[test]
     fn reschedules_pending_after_completed_minutes() {
         let now = date(2026, 2, 2).and_hms_opt(10, 0, 0).expect("hora");
         let pending = vec![
@@ -475,6 +790,8 @@ mod tests {
             duration_min: duration,
             state: state.to_string(),
             original_start: None,
+            studied_seconds: 0,
+            started_at: None,
         }
     }
 }

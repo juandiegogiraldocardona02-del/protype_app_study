@@ -95,6 +95,19 @@ pub struct PlanProposal {
     pub last_date: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuidedPlanProposal {
+    pub level: String,
+    pub label: String,
+    pub description: String,
+    pub topics_count: i64,
+    pub steps_count: i64,
+    pub total_minutes: i64,
+    pub weekly_minutes: i64,
+    pub last_date: String,
+    pub sessions: Vec<PlannedSession>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
     pub id: i64,
@@ -107,6 +120,8 @@ pub struct Session {
     pub duration_min: i64,
     pub state: String,
     pub original_start: Option<String>,
+    pub studied_seconds: i64,
+    pub started_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

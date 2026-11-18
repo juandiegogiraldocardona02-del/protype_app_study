@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void initializeDatabase({required String path}) =>
     RustLib.instance.api.crateBridgeInitializeDatabase(path: path);
@@ -170,6 +170,16 @@ Future<PlanSettingsDto> savePlanSettings({
 Future<PlanProposalDto> previewPlan({required PlatformInt64 subjectId}) =>
     RustLib.instance.api.crateBridgePreviewPlan(subjectId: subjectId);
 
+Future<GuidedPlanDto> previewGuidedPlan({
+  required PlatformInt64 subjectId,
+  required String level,
+  required bool includeToday,
+}) => RustLib.instance.api.crateBridgePreviewGuidedPlan(
+  subjectId: subjectId,
+  level: level,
+  includeToday: includeToday,
+);
+
 Future<PlatformInt64> savePlan({
   required PlatformInt64 subjectId,
   required List<PlannedSessionDto> sessions,
@@ -201,6 +211,33 @@ Future<void> updateSessionDuration({
 }) => RustLib.instance.api.crateBridgeUpdateSessionDuration(
   id: id,
   durationMin: durationMin,
+);
+
+Future<void> startSession({required PlatformInt64 id}) =>
+    RustLib.instance.api.crateBridgeStartSession(id: id);
+
+Future<void> pauseSession({
+  required PlatformInt64 id,
+  required PlatformInt64 studiedSeconds,
+}) => RustLib.instance.api.crateBridgePauseSession(
+  id: id,
+  studiedSeconds: studiedSeconds,
+);
+
+Future<void> completeSession({
+  required PlatformInt64 id,
+  required PlatformInt64 studiedSeconds,
+}) => RustLib.instance.api.crateBridgeCompleteSession(
+  id: id,
+  studiedSeconds: studiedSeconds,
+);
+
+Future<PlatformInt64> finishSessionEarly({
+  required PlatformInt64 id,
+  required PlatformInt64 studiedSeconds,
+}) => RustLib.instance.api.crateBridgeFinishSessionEarly(
+  id: id,
+  studiedSeconds: studiedSeconds,
 );
 
 Future<ReplanResultDto> replanSubject({required PlatformInt64 subjectId}) =>
@@ -1018,6 +1055,57 @@ class GamificationSummaryDto {
           badges == other.badges;
 }
 
+class GuidedPlanDto {
+  final String level;
+  final String label;
+  final String description;
+  final PlatformInt64 topicsCount;
+  final PlatformInt64 stepsCount;
+  final PlatformInt64 totalMinutes;
+  final PlatformInt64 weeklyMinutes;
+  final String lastDate;
+  final List<PlannedSessionDto> sessions;
+
+  const GuidedPlanDto({
+    required this.level,
+    required this.label,
+    required this.description,
+    required this.topicsCount,
+    required this.stepsCount,
+    required this.totalMinutes,
+    required this.weeklyMinutes,
+    required this.lastDate,
+    required this.sessions,
+  });
+
+  @override
+  int get hashCode =>
+      level.hashCode ^
+      label.hashCode ^
+      description.hashCode ^
+      topicsCount.hashCode ^
+      stepsCount.hashCode ^
+      totalMinutes.hashCode ^
+      weeklyMinutes.hashCode ^
+      lastDate.hashCode ^
+      sessions.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GuidedPlanDto &&
+          runtimeType == other.runtimeType &&
+          level == other.level &&
+          label == other.label &&
+          description == other.description &&
+          topicsCount == other.topicsCount &&
+          stepsCount == other.stepsCount &&
+          totalMinutes == other.totalMinutes &&
+          weeklyMinutes == other.weeklyMinutes &&
+          lastDate == other.lastDate &&
+          sessions == other.sessions;
+}
+
 class ImportOutcomeDto {
   final DocumentDto document;
   final bool duplicate;
@@ -1304,6 +1392,8 @@ class SessionDto {
   final PlatformInt64 durationMin;
   final String state;
   final String? originalStart;
+  final PlatformInt64 studiedSeconds;
+  final String? startedAt;
 
   const SessionDto({
     required this.id,
@@ -1316,6 +1406,8 @@ class SessionDto {
     required this.durationMin,
     required this.state,
     this.originalStart,
+    required this.studiedSeconds,
+    this.startedAt,
   });
 
   @override
@@ -1329,7 +1421,9 @@ class SessionDto {
       start.hashCode ^
       durationMin.hashCode ^
       state.hashCode ^
-      originalStart.hashCode;
+      originalStart.hashCode ^
+      studiedSeconds.hashCode ^
+      startedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1345,7 +1439,9 @@ class SessionDto {
           start == other.start &&
           durationMin == other.durationMin &&
           state == other.state &&
-          originalStart == other.originalStart;
+          originalStart == other.originalStart &&
+          studiedSeconds == other.studiedSeconds &&
+          startedAt == other.startedAt;
 }
 
 class StudyPlanImportDto {

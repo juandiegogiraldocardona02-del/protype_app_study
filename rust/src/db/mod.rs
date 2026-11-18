@@ -22,6 +22,10 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (5, include_str!("../../migrations/0005_gamification.sql")),
     (6, include_str!("../../migrations/0006_assessments.sql")),
     (7, include_str!("../../migrations/0007_notes.sql")),
+    (
+        8,
+        include_str!("../../migrations/0008_session_tracking.sql"),
+    ),
 ];
 
 const MAX_NAME_LEN: usize = 120;
@@ -736,7 +740,7 @@ impl Database {
         let mut stmt = self.conn.prepare(
             "SELECT s.id, s.subject_id, s.topic_id, t.nombre, sub.nombre,
                     sub.color, s.inicio, s.duracion_min, s.estado,
-                    s.inicio_original
+                    s.inicio_original, s.estudio_segundos, s.iniciada_en
              FROM sessions s
              JOIN subjects sub ON sub.id = s.subject_id
              LEFT JOIN topics t ON t.id = s.topic_id
@@ -757,7 +761,7 @@ impl Database {
         let mut stmt = self.conn.prepare(
             "SELECT s.id, s.subject_id, s.topic_id, t.nombre, sub.nombre,
                     sub.color, s.inicio, s.duracion_min, s.estado,
-                    s.inicio_original
+                    s.inicio_original, s.estudio_segundos, s.iniciada_en
              FROM sessions s
              JOIN subjects sub ON sub.id = s.subject_id
              LEFT JOIN topics t ON t.id = s.topic_id
@@ -846,6 +850,106 @@ impl Database {
         log_change(&tx, "session", id, "ajustar_duracion")?;
         tx.commit()?;
         Ok(())
+    }
+
+    pub fn start_session(&mut self, id: i64) -> CoreResult<()> {
+        let info: Option<(String, Option<String>)> = self
+            .conn
+            .query_row(
+                "SELECT estado, iniciada_en FROM sessions WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (state, started_at) =
+            info.ok_or_else(|| CoreError::NotFound(format!("sesión {id}")))?;
+        if state == "completada" {
+            return Err(CoreError::Validation("la sesión ya está completada".into()));
+        }
+        if started_at.is_some() {
+            return Ok(());
+        }
+        let now = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE sessions SET iniciada_en = ?2 WHERE id = ?1",
+            params![id, now],
+        )?;
+        log_change(&tx, "session", id, "iniciar_sesion")?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn pause_session(&mut self, id: i64, studied_seconds: i64) -> CoreResult<()> {
+        if studied_seconds < 0 {
+            return Err(CoreError::Validation(
+                "el tiempo estudiado no puede ser negativo".into(),
+            ));
+        }
+        let state: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT estado FROM sessions WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let state = state.ok_or_else(|| CoreError::NotFound(format!("sesión {id}")))?;
+        if state == "completada" {
+            return Err(CoreError::Validation("la sesión ya está completada".into()));
+        }
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE sessions
+             SET estudio_segundos = ?2, iniciada_en = NULL
+             WHERE id = ?1",
+            params![id, studied_seconds],
+        )?;
+        log_change(&tx, "session", id, "pausar_sesion")?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn complete_session(&mut self, id: i64, studied_seconds: i64) -> CoreResult<()> {
+        self.pause_session(id, studied_seconds)?;
+        self.set_session_state(id, "completada")
+    }
+
+    pub fn finish_session_early(&mut self, id: i64, studied_seconds: i64) -> CoreResult<i64> {
+        if studied_seconds <= 0 {
+            return Err(CoreError::Validation(
+                "aún no hay tiempo estudiado que descontar".into(),
+            ));
+        }
+        let info: Option<(String, i64)> = self
+            .conn
+            .query_row(
+                "SELECT estado, duracion_min FROM sessions WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (state, duration_min) =
+            info.ok_or_else(|| CoreError::NotFound(format!("sesión {id}")))?;
+        if state == "completada" {
+            return Err(CoreError::Validation("la sesión ya está completada".into()));
+        }
+        let studied_minutes = (studied_seconds + 59) / 60;
+        let remaining = duration_min - studied_minutes;
+        if remaining <= 0 {
+            self.complete_session(id, studied_seconds)?;
+            return Ok(0);
+        }
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "UPDATE sessions
+             SET duracion_min = ?2, estudio_segundos = ?3, iniciada_en = NULL
+             WHERE id = ?1",
+            params![id, remaining, studied_seconds],
+        )?;
+        log_change(&tx, "session", id, "terminar_antes")?;
+        tx.commit()?;
+        Ok(remaining)
     }
 
     pub fn apply_replan(&mut self, moves: &[(i64, String)]) -> CoreResult<i64> {
@@ -1567,6 +1671,8 @@ fn map_session(row: &rusqlite::Row<'_>) -> rusqlite::Result<Session> {
         duration_min: row.get(7)?,
         state: row.get(8)?,
         original_start: row.get(9)?,
+        studied_seconds: row.get(10)?,
+        started_at: row.get(11)?,
     })
 }
 

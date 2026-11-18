@@ -154,6 +154,19 @@ pub struct PlanProposalDto {
 }
 
 #[derive(Debug, Clone)]
+pub struct GuidedPlanDto {
+    pub level: String,
+    pub label: String,
+    pub description: String,
+    pub topics_count: i64,
+    pub steps_count: i64,
+    pub total_minutes: i64,
+    pub weekly_minutes: i64,
+    pub last_date: String,
+    pub sessions: Vec<PlannedSessionDto>,
+}
+
+#[derive(Debug, Clone)]
 pub struct SessionDto {
     pub id: i64,
     pub subject_id: i64,
@@ -165,6 +178,8 @@ pub struct SessionDto {
     pub duration_min: i64,
     pub state: String,
     pub original_start: Option<String>,
+    pub studied_seconds: i64,
+    pub started_at: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -537,6 +552,22 @@ impl From<domain::PlanProposal> for PlanProposalDto {
     }
 }
 
+impl From<domain::GuidedPlanProposal> for GuidedPlanDto {
+    fn from(value: domain::GuidedPlanProposal) -> Self {
+        Self {
+            level: value.level,
+            label: value.label,
+            description: value.description,
+            topics_count: value.topics_count,
+            steps_count: value.steps_count,
+            total_minutes: value.total_minutes,
+            weekly_minutes: value.weekly_minutes,
+            last_date: value.last_date,
+            sessions: value.sessions.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 impl From<domain::Session> for SessionDto {
     fn from(value: domain::Session) -> Self {
         Self {
@@ -550,6 +581,8 @@ impl From<domain::Session> for SessionDto {
             duration_min: value.duration_min,
             state: value.state,
             original_start: value.original_start,
+            studied_seconds: value.studied_seconds,
+            started_at: value.started_at,
         }
     }
 }
@@ -958,6 +991,17 @@ pub fn preview_plan(subject_id: i64) -> anyhow::Result<PlanProposalDto> {
     Ok(proposal.into())
 }
 
+pub fn preview_guided_plan(
+    subject_id: i64,
+    level: String,
+    include_today: bool,
+) -> anyhow::Result<GuidedPlanDto> {
+    let proposal = db::with_db(|database| {
+        crate::planning::preview_guided_plan(database, subject_id, &level, include_today)
+    })?;
+    Ok(proposal.into())
+}
+
 pub fn save_plan(subject_id: i64, sessions: Vec<PlannedSessionDto>) -> anyhow::Result<i64> {
     let sessions: Vec<domain::PlannedSession> = sessions
         .into_iter()
@@ -993,6 +1037,26 @@ pub fn set_session_state(id: i64, state: String) -> anyhow::Result<()> {
 pub fn update_session_duration(id: i64, duration_min: i64) -> anyhow::Result<()> {
     db::with_db(|database| database.update_session_duration(id, duration_min))?;
     Ok(())
+}
+
+pub fn start_session(id: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.start_session(id))?;
+    Ok(())
+}
+
+pub fn pause_session(id: i64, studied_seconds: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.pause_session(id, studied_seconds))?;
+    Ok(())
+}
+
+pub fn complete_session(id: i64, studied_seconds: i64) -> anyhow::Result<()> {
+    db::with_db(|database| database.complete_session(id, studied_seconds))?;
+    Ok(())
+}
+
+pub fn finish_session_early(id: i64, studied_seconds: i64) -> anyhow::Result<i64> {
+    let remaining = db::with_db(|database| database.finish_session_early(id, studied_seconds))?;
+    Ok(remaining)
 }
 
 pub fn replan_subject(subject_id: i64) -> anyhow::Result<ReplanResultDto> {

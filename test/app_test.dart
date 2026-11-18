@@ -350,9 +350,10 @@ void main() {
 
     await tester.tap(find.text('Generar plan'));
     await tester.pumpAndSettle();
-    expect(find.text('Vista previa del plan'), findsOneWidget);
+    expect(find.text('Generar plan recomendado'), findsOneWidget);
+    expect(find.text('Intermedio'), findsOneWidget);
 
-    await tester.tap(find.textContaining('Guardar plan'));
+    await tester.tap(find.text('Guardar en Tareas'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Plan guardado con'), findsOneWidget);
@@ -361,7 +362,7 @@ void main() {
         .toIso8601String();
     final end = DateTime.now().add(const Duration(days: 60)).toIso8601String();
     final sessions = await repository.listSessions(1, 1, start, end);
-    expect(sessions, hasLength(1));
+    expect(sessions, hasLength(12));
   });
 
   testWidgets('el calendario muestra sesiones y permite completarlas', (

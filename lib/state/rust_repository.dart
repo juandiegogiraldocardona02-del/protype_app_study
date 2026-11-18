@@ -134,6 +134,17 @@ class RustStudyRepository implements StudyRepository {
       rust.previewPlan(subjectId: subjectId);
 
   @override
+  Future<GuidedPlanDto> previewGuidedPlan(
+    int subjectId,
+    String level,
+    bool includeToday,
+  ) => rust.previewGuidedPlan(
+    subjectId: subjectId,
+    level: level,
+    includeToday: includeToday,
+  );
+
+  @override
   Future<int> savePlan(int subjectId, List<PlannedSessionDto> sessions) =>
       rust.savePlan(subjectId: subjectId, sessions: sessions);
 
@@ -157,6 +168,21 @@ class RustStudyRepository implements StudyRepository {
   @override
   Future<void> updateSessionDuration(int id, int durationMin) =>
       rust.updateSessionDuration(id: id, durationMin: durationMin);
+
+  @override
+  Future<void> startSession(int id) => rust.startSession(id: id);
+
+  @override
+  Future<void> pauseSession(int id, int studiedSeconds) =>
+      rust.pauseSession(id: id, studiedSeconds: studiedSeconds);
+
+  @override
+  Future<void> completeSession(int id, int studiedSeconds) =>
+      rust.completeSession(id: id, studiedSeconds: studiedSeconds);
+
+  @override
+  Future<int> finishSessionEarly(int id, int studiedSeconds) =>
+      rust.finishSessionEarly(id: id, studiedSeconds: studiedSeconds);
 
   @override
   Future<ReplanResultDto> replanSubject(int subjectId) =>

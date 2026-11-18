@@ -337,6 +337,12 @@ class PlanActions {
   Future<PlanProposalDto> preview(int subjectId) =>
       _repo.previewPlan(subjectId);
 
+  Future<GuidedPlanDto> previewGuided(
+    int subjectId,
+    String level,
+    bool includeToday,
+  ) => _repo.previewGuidedPlan(subjectId, level, includeToday);
+
   Future<int> save(int subjectId, List<PlannedSessionDto> sessions) async {
     final count = await _repo.savePlan(subjectId, sessions);
     _ref.invalidate(sessionsProvider);
@@ -354,6 +360,30 @@ class PlanActions {
   Future<void> setSessionDuration(int id, int durationMin) async {
     await _repo.updateSessionDuration(id, durationMin);
     _ref.invalidate(sessionsProvider);
+  }
+
+  Future<void> startSession(int id) async {
+    await _repo.startSession(id);
+    _ref.invalidate(sessionsProvider);
+  }
+
+  Future<void> pauseSession(int id, int studiedSeconds) async {
+    await _repo.pauseSession(id, studiedSeconds);
+    _ref.invalidate(sessionsProvider);
+  }
+
+  Future<void> completeSession(int id, int studiedSeconds) async {
+    await _repo.completeSession(id, studiedSeconds);
+    _ref.invalidate(sessionsProvider);
+    _ref.invalidate(masteryProvider);
+    _ref.invalidate(topicsProvider);
+    _ref.invalidate(gamificationProvider);
+  }
+
+  Future<int> finishSessionEarly(int id, int studiedSeconds) async {
+    final remaining = await _repo.finishSessionEarly(id, studiedSeconds);
+    _ref.invalidate(sessionsProvider);
+    return remaining;
   }
 
   Future<ReplanResultDto> replan(int subjectId) async {

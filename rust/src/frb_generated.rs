@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 381139813;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1359118995;
 
 // Section: executor
 
@@ -116,6 +116,43 @@ fn wire__crate__bridge__audio_available_impl(
                     let output_ok = Ok::<_, ()>(crate::bridge::audio_available())?;
                     std::result::Result::Ok(output_ok)
                 })())
+            }
+        },
+    )
+}
+fn wire__crate__bridge__complete_session_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "complete_session",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            let api_studied_seconds = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok =
+                            crate::bridge::complete_session(api_id, api_studied_seconds)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
             }
         },
     )
@@ -585,6 +622,43 @@ fn wire__crate__bridge__export_study_plan_impl(
                     (move || {
                         let output_ok =
                             crate::bridge::export_study_plan(api_subject_id, api_directory)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__finish_session_early_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "finish_session_early",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            let api_studied_seconds = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok =
+                            crate::bridge::finish_session_early(api_id, api_studied_seconds)?;
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
@@ -1447,6 +1521,42 @@ fn wire__crate__bridge__ocr_available_impl(
         },
     )
 }
+fn wire__crate__bridge__pause_session_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "pause_session",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            let api_studied_seconds = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::pause_session(api_id, api_studied_seconds)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__bridge__preview_flashcards_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1475,6 +1585,47 @@ fn wire__crate__bridge__preview_flashcards_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::bridge::preview_flashcards(api_subject_id)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__preview_guided_plan_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "preview_guided_plan",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_subject_id = <i64>::sse_decode(&mut deserializer);
+            let api_level = <String>::sse_decode(&mut deserializer);
+            let api_include_today = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::preview_guided_plan(
+                            api_subject_id,
+                            api_level,
+                            api_include_today,
+                        )?;
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
@@ -1881,6 +2032,41 @@ fn wire__crate__bridge__set_session_state_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::bridge::set_session_state(api_id, api_state)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__bridge__start_session_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "start_session",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::bridge::start_session(api_id)?;
                         std::result::Result::Ok(output_ok)
                     })(),
                 )
@@ -2478,6 +2664,32 @@ impl SseDecode for crate::bridge::GamificationSummaryDto {
     }
 }
 
+impl SseDecode for crate::bridge::GuidedPlanDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_level = <String>::sse_decode(deserializer);
+        let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_description = <String>::sse_decode(deserializer);
+        let mut var_topicsCount = <i64>::sse_decode(deserializer);
+        let mut var_stepsCount = <i64>::sse_decode(deserializer);
+        let mut var_totalMinutes = <i64>::sse_decode(deserializer);
+        let mut var_weeklyMinutes = <i64>::sse_decode(deserializer);
+        let mut var_lastDate = <String>::sse_decode(deserializer);
+        let mut var_sessions = <Vec<crate::bridge::PlannedSessionDto>>::sse_decode(deserializer);
+        return crate::bridge::GuidedPlanDto {
+            level: var_level,
+            label: var_label,
+            description: var_description,
+            topics_count: var_topicsCount,
+            steps_count: var_stepsCount,
+            total_minutes: var_totalMinutes,
+            weekly_minutes: var_weeklyMinutes,
+            last_date: var_lastDate,
+            sessions: var_sessions,
+        };
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2909,6 +3121,8 @@ impl SseDecode for crate::bridge::SessionDto {
         let mut var_durationMin = <i64>::sse_decode(deserializer);
         let mut var_state = <String>::sse_decode(deserializer);
         let mut var_originalStart = <Option<String>>::sse_decode(deserializer);
+        let mut var_studiedSeconds = <i64>::sse_decode(deserializer);
+        let mut var_startedAt = <Option<String>>::sse_decode(deserializer);
         return crate::bridge::SessionDto {
             id: var_id,
             subject_id: var_subjectId,
@@ -2920,6 +3134,8 @@ impl SseDecode for crate::bridge::SessionDto {
             duration_min: var_durationMin,
             state: var_state,
             original_start: var_originalStart,
+            studied_seconds: var_studiedSeconds,
+            started_at: var_startedAt,
         };
     }
 }
@@ -3052,58 +3268,63 @@ fn pde_ffi_dispatcher_primary_impl(
     match func_id {
         1 => wire__crate__bridge__ask_assistant_impl(port, ptr, rust_vec_len, data_len),
         2 => wire__crate__bridge__audio_available_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__bridge__create_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__bridge__create_note_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__bridge__create_profile_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__bridge__create_subject_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__bridge__create_topic_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__bridge__delete_document_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__bridge__delete_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__bridge__delete_note_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__bridge__delete_profile_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__bridge__delete_subject_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__bridge__delete_topic_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__bridge__export_backup_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__bridge__export_study_plan_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__bridge__generate_assessment_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__bridge__get_gamification_summary_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__bridge__get_plan_settings_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__bridge__get_xp_config_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__bridge__grade_assessment_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__bridge__import_document_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__bridge__import_study_plan_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__bridge__init_app_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__bridge__inspect_backup_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__bridge__inspect_study_plan_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__bridge__list_assessments_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__bridge__list_document_chunks_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__bridge__list_documents_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__bridge__list_due_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__bridge__list_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__bridge__list_mastery_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__bridge__list_notes_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__bridge__list_sessions_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__bridge__list_topics_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__bridge__ocr_available_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__bridge__preview_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__bridge__preview_plan_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__bridge__replan_subject_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__bridge__restore_backup_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__bridge__revert_replan_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__bridge__review_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__bridge__save_flashcards_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__bridge__save_plan_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__bridge__save_plan_settings_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__bridge__save_xp_config_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__bridge__set_session_state_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__bridge__update_flashcard_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__bridge__update_note_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__bridge__update_session_duration_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
-        56 => wire__crate__bridge__update_topic_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__bridge__complete_session_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__bridge__create_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__bridge__create_note_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__bridge__create_profile_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__bridge__create_subject_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__bridge__create_topic_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__bridge__delete_document_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__bridge__delete_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__bridge__delete_note_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__bridge__delete_profile_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__bridge__delete_subject_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__bridge__delete_topic_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__bridge__export_backup_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__bridge__export_study_plan_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__bridge__finish_session_early_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__bridge__generate_assessment_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__bridge__get_gamification_summary_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__bridge__get_plan_settings_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__bridge__get_xp_config_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__bridge__grade_assessment_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__bridge__import_document_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__bridge__import_study_plan_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__bridge__init_app_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__bridge__inspect_backup_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__bridge__inspect_study_plan_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__bridge__list_assessments_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__bridge__list_document_chunks_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__bridge__list_documents_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__bridge__list_due_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__bridge__list_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__bridge__list_mastery_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__bridge__list_notes_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__bridge__list_profiles_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__bridge__list_sessions_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__bridge__list_subjects_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__bridge__list_topics_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__bridge__ocr_available_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__bridge__pause_session_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__bridge__preview_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__bridge__preview_guided_plan_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__bridge__preview_plan_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__bridge__rename_profile_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__bridge__replan_subject_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__bridge__restore_backup_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__bridge__revert_replan_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__bridge__review_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__bridge__save_flashcards_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__bridge__save_plan_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__bridge__save_plan_settings_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__bridge__save_xp_config_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__bridge__set_session_state_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__bridge__start_session_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__bridge__update_flashcard_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__bridge__update_note_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__bridge__update_session_duration_impl(port, ptr, rust_vec_len, data_len),
+        60 => wire__crate__bridge__update_subject_impl(port, ptr, rust_vec_len, data_len),
+        61 => wire__crate__bridge__update_topic_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3116,8 +3337,8 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        17 => wire__crate__bridge__get_ai_status_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__bridge__initialize_database_impl(ptr, rust_vec_len, data_len),
+        19 => wire__crate__bridge__get_ai_status_impl(ptr, rust_vec_len, data_len),
+        27 => wire__crate__bridge__initialize_database_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3573,6 +3794,31 @@ impl flutter_rust_bridge::IntoIntoDart<crate::bridge::GamificationSummaryDto>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::bridge::GuidedPlanDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.level.into_into_dart().into_dart(),
+            self.label.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+            self.topics_count.into_into_dart().into_dart(),
+            self.steps_count.into_into_dart().into_dart(),
+            self.total_minutes.into_into_dart().into_dart(),
+            self.weekly_minutes.into_into_dart().into_dart(),
+            self.last_date.into_into_dart().into_dart(),
+            self.sessions.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::bridge::GuidedPlanDto {}
+impl flutter_rust_bridge::IntoIntoDart<crate::bridge::GuidedPlanDto>
+    for crate::bridge::GuidedPlanDto
+{
+    fn into_into_dart(self) -> crate::bridge::GuidedPlanDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::bridge::ImportOutcomeDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -3784,6 +4030,8 @@ impl flutter_rust_bridge::IntoDart for crate::bridge::SessionDto {
             self.duration_min.into_into_dart().into_dart(),
             self.state.into_into_dart().into_dart(),
             self.original_start.into_into_dart().into_dart(),
+            self.studied_seconds.into_into_dart().into_dart(),
+            self.started_at.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -4154,6 +4402,21 @@ impl SseEncode for crate::bridge::GamificationSummaryDto {
     }
 }
 
+impl SseEncode for crate::bridge::GuidedPlanDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.level, serializer);
+        <String>::sse_encode(self.label, serializer);
+        <String>::sse_encode(self.description, serializer);
+        <i64>::sse_encode(self.topics_count, serializer);
+        <i64>::sse_encode(self.steps_count, serializer);
+        <i64>::sse_encode(self.total_minutes, serializer);
+        <i64>::sse_encode(self.weekly_minutes, serializer);
+        <String>::sse_encode(self.last_date, serializer);
+        <Vec<crate::bridge::PlannedSessionDto>>::sse_encode(self.sessions, serializer);
+    }
+}
+
 impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4475,6 +4738,8 @@ impl SseEncode for crate::bridge::SessionDto {
         <i64>::sse_encode(self.duration_min, serializer);
         <String>::sse_encode(self.state, serializer);
         <Option<String>>::sse_encode(self.original_start, serializer);
+        <i64>::sse_encode(self.studied_seconds, serializer);
+        <Option<String>>::sse_encode(self.started_at, serializer);
     }
 }
 

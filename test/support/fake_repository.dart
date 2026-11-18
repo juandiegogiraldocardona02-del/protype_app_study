@@ -467,6 +467,7 @@ class FakeStudyRepository implements StudyRepository {
       start: start,
       durationMin: durationMin,
       state: state,
+      studiedSeconds: 0,
     );
     _sessions[session.id] = session;
     return session;
@@ -707,6 +708,78 @@ class FakeStudyRepository implements StudyRepository {
   }
 
   @override
+  Future<GuidedPlanDto> previewGuidedPlan(
+    int subjectId,
+    String level,
+    bool includeToday,
+  ) async {
+    final settings = await getPlanSettings(subjectId);
+    final topics = _topics[subjectId] ?? const <TopicDto>[];
+    final normalized = level.trim().toLowerCase();
+    final topicCount = switch (normalized) {
+      'medio' => 1,
+      'intenso' => 3,
+      _ => 2,
+    };
+    final stepCount = switch (normalized) {
+      'medio' => 6,
+      'intenso' => 14,
+      _ => 12,
+    };
+    final selected = topics.take(topicCount).toList();
+    var day = includeToday
+        ? DateTime.now()
+        : DateTime.now().add(const Duration(days: 1));
+    var slot = 0;
+    final sessions = <PlannedSessionDto>[];
+    for (final topic in selected) {
+      for (var step = 0; step < stepCount; step++) {
+        final start = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          settings.startHour,
+        ).add(Duration(minutes: slot * 15));
+        sessions.add(
+          PlannedSessionDto(
+            topicId: topic.id,
+            topicName: 'Paso ${step + 1} · ${topic.name}',
+            start: _iso(start),
+            durationMin: 15,
+            state: 'pendiente',
+          ),
+        );
+        slot += 1;
+        if (slot >= 4) {
+          slot = 0;
+          day = DateTime(day.year, day.month, day.day + 1);
+        }
+      }
+    }
+    final weekly = settings.availability.fold<int>(
+      0,
+      (total, item) => total + item.minutes,
+    );
+    return GuidedPlanDto(
+      level: normalized,
+      label: switch (normalized) {
+        'medio' => 'Medio',
+        'intenso' => 'Intenso',
+        _ => 'Intermedio · recomendado',
+      },
+      description: 'Plan de prueba generado por el repositorio falso.',
+      topicsCount: selected.length,
+      stepsCount: stepCount,
+      totalMinutes: sessions.length * 15,
+      weeklyMinutes: weekly,
+      lastDate: sessions.isEmpty
+          ? _dateOnly(day)
+          : sessions.last.start.substring(0, 10),
+      sessions: sessions,
+    );
+  }
+
+  @override
   Future<int> savePlan(int subjectId, List<PlannedSessionDto> sessions) async {
     _sessions.removeWhere(
       (_, session) =>
@@ -724,6 +797,7 @@ class FakeStudyRepository implements StudyRepository {
         start: planned.start,
         durationMin: planned.durationMin,
         state: 'pendiente',
+        studiedSeconds: 0,
       );
       _sessions[session.id] = session;
     }
@@ -767,6 +841,8 @@ class FakeStudyRepository implements StudyRepository {
       durationMin: current.durationMin,
       state: state,
       originalStart: current.originalStart,
+      studiedSeconds: current.studiedSeconds,
+      startedAt: current.startedAt,
     );
     if (state == 'completada' && _xpSessions.add(id)) {
       final config = xpConfigFor(current.subjectId);
@@ -792,7 +868,86 @@ class FakeStudyRepository implements StudyRepository {
       durationMin: durationMin,
       state: current.state,
       originalStart: current.originalStart,
+      studiedSeconds: current.studiedSeconds,
+      startedAt: current.startedAt,
     );
+  }
+
+  @override
+  Future<void> startSession(int id) async {
+    final current = _sessions[id];
+    if (current == null) {
+      throw StateError('sesión $id no encontrada');
+    }
+    _sessions[id] = SessionDto(
+      id: current.id,
+      subjectId: current.subjectId,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectName: current.subjectName,
+      subjectColor: current.subjectColor,
+      start: current.start,
+      durationMin: current.durationMin,
+      state: current.state,
+      originalStart: current.originalStart,
+      studiedSeconds: current.studiedSeconds,
+      startedAt: DateTime.now().toIso8601String(),
+    );
+  }
+
+  @override
+  Future<void> pauseSession(int id, int studiedSeconds) async {
+    final current = _sessions[id];
+    if (current == null) {
+      throw StateError('sesión $id no encontrada');
+    }
+    _sessions[id] = SessionDto(
+      id: current.id,
+      subjectId: current.subjectId,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectName: current.subjectName,
+      subjectColor: current.subjectColor,
+      start: current.start,
+      durationMin: current.durationMin,
+      state: current.state,
+      originalStart: current.originalStart,
+      studiedSeconds: studiedSeconds,
+    );
+  }
+
+  @override
+  Future<void> completeSession(int id, int studiedSeconds) async {
+    await pauseSession(id, studiedSeconds);
+    await setSessionState(id, 'completada');
+  }
+
+  @override
+  Future<int> finishSessionEarly(int id, int studiedSeconds) async {
+    final current = _sessions[id];
+    if (current == null) {
+      throw StateError('sesión $id no encontrada');
+    }
+    final studiedMinutes = (studiedSeconds + 59) ~/ 60;
+    final remaining = current.durationMin - studiedMinutes;
+    if (remaining <= 0) {
+      await completeSession(id, studiedSeconds);
+      return 0;
+    }
+    _sessions[id] = SessionDto(
+      id: current.id,
+      subjectId: current.subjectId,
+      topicId: current.topicId,
+      topicName: current.topicName,
+      subjectName: current.subjectName,
+      subjectColor: current.subjectColor,
+      start: current.start,
+      durationMin: remaining,
+      state: current.state,
+      originalStart: current.originalStart,
+      studiedSeconds: studiedSeconds,
+    );
+    return remaining;
   }
 
   @override
@@ -818,6 +973,8 @@ class FakeStudyRepository implements StudyRepository {
         durationMin: current.durationMin,
         state: 'replanificada',
         originalStart: current.originalStart ?? current.start,
+        studiedSeconds: current.studiedSeconds,
+        startedAt: current.startedAt,
       );
     }
     return ReplanResultDto(
@@ -843,6 +1000,8 @@ class FakeStudyRepository implements StudyRepository {
         start: session.originalStart!,
         durationMin: session.durationMin,
         state: 'pendiente',
+        studiedSeconds: session.studiedSeconds,
+        startedAt: session.startedAt,
       );
       reverted += 1;
     }

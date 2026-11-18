@@ -101,6 +101,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GamificationSummaryDto dco_decode_gamification_summary_dto(dynamic raw);
 
   @protected
+  GuidedPlanDto dco_decode_guided_plan_dto(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -318,6 +321,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GamificationSummaryDto sse_decode_gamification_summary_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  GuidedPlanDto sse_decode_guided_plan_dto(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -591,6 +597,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     GamificationSummaryDto self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_guided_plan_dto(GuidedPlanDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);

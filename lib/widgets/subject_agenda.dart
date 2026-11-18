@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/providers.dart';
 import '../state/repository.dart';
 import 'dialogs.dart';
+import 'guided_plan_dialog.dart';
 
 const Map<int, String> _weekdayLabels = <int, String>{
   1: 'L',
@@ -214,20 +215,32 @@ class SubjectAgendaPanel extends ConsumerWidget {
 
   Future<void> _generate(BuildContext context, WidgetRef ref) async {
     try {
-      final proposal = await ref.read(planActionsProvider).preview(subject.id);
+      final profile = ref.read(activeProfileProvider);
+      if (profile == null) {
+        return;
+      }
+      final subjects = await ref.read(subjectsProvider(profile.id).future);
       if (!context.mounted) {
         return;
       }
-      final chosen = await _showPlanPreviewDialog(context, proposal);
-      if (chosen == null || chosen.isEmpty || !context.mounted) {
+      final choice = await showGuidedPlanDialog(
+        context,
+        subjects: subjects,
+        initialSubjectId: subject.id,
+      );
+      if (choice == null || choice.sessions.isEmpty || !context.mounted) {
         return;
       }
       final count = await ref
           .read(planActionsProvider)
-          .save(subject.id, chosen);
+          .save(choice.subjectId, choice.sessions);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Plan guardado con $count sesiones.')),
+          SnackBar(
+            content: Text(
+              'Plan guardado con $count sesiones. Ya está disponible en Tareas.',
+            ),
+          ),
         );
       }
     } catch (error) {
@@ -551,112 +564,6 @@ Future<_SettingsResult?> _showPlanSettingsDialog(
       );
     },
   );
-}
-
-Future<List<PlannedSessionDto>?> _showPlanPreviewDialog(
-  BuildContext context,
-  PlanProposalDto proposal,
-) {
-  return showDialog<List<PlannedSessionDto>>(
-    context: context,
-    builder: (context) => _PlanPreviewDialog(proposal: proposal),
-  );
-}
-
-class _PlanPreviewDialog extends StatefulWidget {
-  const _PlanPreviewDialog({required this.proposal});
-
-  final PlanProposalDto proposal;
-
-  @override
-  State<_PlanPreviewDialog> createState() => _PlanPreviewDialogState();
-}
-
-class _PlanPreviewDialogState extends State<_PlanPreviewDialog> {
-  late final List<bool> _included = List<bool>.filled(
-    widget.proposal.sessions.length,
-    true,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final included = <PlannedSessionDto>[
-      for (var i = 0; i < _included.length; i++)
-        if (_included[i]) widget.proposal.sessions[i],
-    ];
-    final minutes = included.fold<int>(
-      0,
-      (total, session) => total + session.durationMin,
-    );
-    return AlertDialog(
-      title: const Text('Vista previa del plan'),
-      content: SizedBox(
-        width: 560,
-        height: 460,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${included.length} sesiones · ${(minutes / 60).toStringAsFixed(1)} h '
-              '· termina el ${widget.proposal.lastDate}',
-            ),
-            Text(
-              'Disponibilidad: '
-              '${(widget.proposal.weeklyMinutes / 60).toStringAsFixed(1)} h/semana',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Desmarca las sesiones que no quieras incluir.',
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: widget.proposal.sessions.length,
-                itemBuilder: (context, index) {
-                  final session = widget.proposal.sessions[index];
-                  return CheckboxListTile(
-                    dense: true,
-                    value: _included[index],
-                    onChanged: (value) =>
-                        setState(() => _included[index] = value ?? false),
-                    title: Text(session.topicName),
-                    subtitle: Text(
-                      '${_formatStart(session.start)} · '
-                      '${session.durationMin} min',
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: included.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(included),
-          child: Text('Guardar plan (${included.length})'),
-        ),
-      ],
-    );
-  }
-}
-
-String _formatStart(String iso) {
-  final parsed = DateTime.tryParse(iso);
-  if (parsed == null) {
-    return iso;
-  }
-  String two(int value) => value.toString().padLeft(2, '0');
-  return '${two(parsed.day)}/${two(parsed.month)} '
-      '${two(parsed.hour)}:${two(parsed.minute)}';
 }
 
 String _describe(Object error) {
